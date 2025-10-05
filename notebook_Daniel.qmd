@@ -9,6 +9,9 @@ format: html
 
 library(tidyverse)
 library(NHANES)
+library(car)
+library(pROC)
+library(mgcv)
 
 ```
 
@@ -63,7 +66,7 @@ str(nhanes_sub)
 ### Types of variables in the nhanes dataset: (i.e. nhanes_sub)
 
 | Variable | Type | Description / Example |
-|-------------------|-------------------|-----------------------------------|
+|-------------------|-------------------|----------------------------------|
 | **SurveyYr** | categorical | Survey year (`2009_10`, `2011_12`) |
 | **Gender** | binary | Gender (`male`, `female`) |
 | **Age** | count | Age in years (0–80, integers) |
@@ -98,7 +101,7 @@ str(nhanes_sub)
 | **LittleInterest** | binary | Little interest in activities (`Yes`/`No`) |
 | **Depressed** | categorical | Times feeling depressed (None, Most, Several, NAs) |
 
-## Generalised Additive Model (family: Binomial)
+## Binomial models
 
 ### Make outcome variable Depressed (three levels) binary
 
@@ -148,6 +151,12 @@ ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = MaritalStatus, fill = 
   geom_bar(position = "fill") +
   theme(axis.text.x = element_text(angle=45, hjust=1))
 
+# PhysActive nach MaritalStatus
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
+       aes(x = PhysActive, fill = Depressed_bin)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ MaritalStatus)
+
 # BMI vs Depressed
 ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = BMI)) +
   geom_boxplot()
@@ -166,8 +175,8 @@ ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = SleepTrouble, fill = D
 
 # library(ggmosaic)
 # ggplot(filter(nhanes_sub, !is.na(Depressed_bin))) +
-#   geom_mosaic(aes(x = product(Gender, MaritalStatus), fill = Depressed_bin)) +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#  geom_mosaic(aes(x = product(Gender, MaritalStatus), fill = Depressed_bin)) +
+#  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # SleepTrouble nach Gender
 ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
@@ -175,17 +184,13 @@ ggplot(filter(nhanes_sub, !is.na(Depressed_bin)),
   geom_bar(position = "fill") +
   facet_wrap(~ Gender)
 
-# PhysActive nach MaritalStatus
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
-       aes(x = PhysActive, fill = Depressed_bin)) +
-  geom_bar(position = "fill") +
-  facet_wrap(~ MaritalStatus)
-
 ```
 
-### Create the models
+### Generalized Linear Model (family: Binomial)
 
-Previous research has shown that depression is often associated with demographic, socioeconomic, social, health, and lifestyle factors. Based on these findings and after visual inspection of the graphs above, the following variables are included in the first model:
+#### First model (selection of variables)
+
+Previous research has shown that depression is often associated with demographic, socioeconomic, social, health, and lifestyle factors. Based on these findings and after visual inspection of the graphs above, the following 9 variables are included in the first model:
 
 -   **Demographic**: Age, Gender\
 -   **Socioeconomic**: Poverty\
@@ -210,6 +215,10 @@ summary(glm_depressed_1)
 
 ```
 
+#### Handling of missings
+
+703 observation were removed as **missing**. In which variable are they missing?
+
 ```{r}
 #| label: "GLM_Binomial_missings"
 
@@ -225,8 +234,10 @@ Depressed_data %>%
 
 ```
 
+It is feasible to **replace missings** in `Poverty`, `BMI` and `SleepHrsNight` by the **median**. For `MaritalStatus` I don't see a convincing approach to replace missings.
+
 ```{r}
-#| label: "ImputeMissingsMedianExklMaritalStatus"
+#| label: "Impute_Missings"
 
 Depressed_data_imp <- Depressed_data %>%
   mutate(
@@ -242,26 +253,177 @@ Depressed_data_imp %>%
 
 ```
 
-```{r}
-#| label: "GLM_Binomial_2"
+I will continue the modelling with this dataset where only `MaritalStatus` is missing for 236 cases.
 
-glm_depressed_2 <- glm(Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
+```{r}
+#| label: "GLM_Binomial_1b"
+
+glm_depressed_1b <- glm(Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
                    HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
                    data = Depressed_data_imp,
                    family = binomial)
+summary(glm_depressed_1b)
+
+```
+
+#### First interpretation
+
+There is **strong evidence against the null hypothesis** that `Gender`, `Poverty`, `MaritalStatus`, `HealthGen`, `SleepHrsNight`, `SleepTrouble` and `PhysActivitie` have no effect. Whereas `Age` and `BMI` show **no significant effect** on Depressed_bin.
+
+#### Checking for Collinearity
+
+I am concerned about potential collinearity between the predictors, as this could hinder a proper interpretation of their individual effects. Therefore, I checked the model for signs of collinearity.
+
+```{r}
+#| label: "GLM_Binomial_1b_Collinear"
+
+vif(glm_depressed_1b)   # auf dein Modell anwenden
+
+
+```
+
+All VIF values are \<2, meaning the model does not suffer from collinearity.
+
+#### Second model (Age, BMI removed)
+
+```{r}
+#| label: "GLM_Binomial_2"
+
+glm_depressed_2 <- glm(Depressed_bin ~ Gender + Poverty + MaritalStatus + HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
+                       data = Depressed_data_imp,
+                       family = binomial)
 summary(glm_depressed_2)
 
 ```
 
-I check collinearity.
+Do all variables **contribute significantly** to the quality of the model?
 
 ```{r}
-#| label: "GLM_Binomial_2_Collinear"
+#| label: "Glm_depressed_2_drop1"
 
-library(car)
-vif(glm_depressed)   # auf dein Modell anwenden
+drop1(glm_depressed_2, test = "Chisq")
+
+```
+
+As expected, all 7 variables are highly relevant for the quality of the model
+
+#### Third model: Conceptual collinearity
+
+I think that the variable **`HealthGen`** is **conceptually collinear** with `Depressed_bin`, as self-rated general health strongly overlaps with depressive symptoms. Since the focus of this analysis is on understanding underlying relationships rather than maximizing predictive accuracy, **`HealthGen`** will be excluded from the final model.
+
+```{r}
+#| label: "GLM_Binomial_3"
+
+glm_depressed_3 <- glm(Depressed_bin ~ Gender + Poverty + MaritalStatus + SleepHrsNight + SleepTrouble + PhysActive,
+                       data = Depressed_data_imp,
+                       family = binomial)
+summary(glm_depressed_3)
+
+```
+
+#### Comparison 2nd and 3rd model
+
+The 2nd model has Residual deviance of 5948.8, the 3rd of 6095.2. Therefore **both differ clearly from the Null deviance** of 6688.1. The 2nd model including `HealthGen` is slightly better, also while comparing AIC (5978.8 vs. 6117.2). However, **I prefer the third model**, as `HealthGen` is not causally independent from `Depressed_bin` and may reflect overlapping constructs rather than a distinct explanatory factor.
+
+To evaluate the discriminatory power of the logistic regression model (3rd), a **ROC (Receiver Operating Characteristic)** analysis is performed using the pROC package.
+
+```{r}
+#| label: "GLM_Binomial_3_ROC"
+#| message: false
+
+roc(glm_depressed_3$y, fitted(glm_depressed_3))
+
+```
+
+The resulting **AUC of 0.71** indicates that the model distinguishes **reasonably well** between depressed and non-depressed individuals. While not exceptionally high, this level of accuracy is typical for psycho-social data and supports the model’s usefulness for explanatory purposes.
+
+### Generalized Additive Model (family: Binomial)
+
+Taking non-linear effects into account could improve the model. Therefore I check first visually if there might be non-linear relations between `Depressed_bin` and the variables `Poverty` and `SleepHrsNight`.
+
+#### Exploratory plots
+
+```{r}
+#| label: "Plot_nonlinear_effects"
+#| message: false
+#| warning: false
+
+ggplot(Depressed_data_imp, aes(x = Poverty, y = as.numeric(Depressed_bin) - 1)) +
+  geom_jitter(height = 0.05, alpha = 0.3, color = "gray60") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"),
+              color = "blue", se = FALSE) +
+  geom_smooth(method = "loess", color = "red", se = FALSE) +
+  labs(
+    y = "Probability of Depression",
+    title = "Poverty vs. Probability of Depression",
+    subtitle = "Blue = logistic fit (GLM), Red = flexible smoother (LOESS)"
+  )
+
+ggplot(Depressed_data_imp, aes(x = SleepHrsNight, y = as.numeric(Depressed_bin) - 1)) +
+  geom_jitter(height = 0.05, alpha = 0.3, color = "gray60") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"),
+              color = "blue", se = FALSE) +
+  geom_smooth(method = "loess", color = "red", se = FALSE) +
+  labs(
+    y = "Probability of Depression",
+    title = "Sleep hours per night vs. Probability of Depression",
+    subtitle = "Blue = logistic fit (GLM), Red = flexible smoother (LOESS)"
+  )
 
 
 ```
 
-I doubt collinearity of HealthGen and/or SleepTrouble with Depressed. This is not an issue for the model, but for the interpretation. I could calculate two models, with and without those.
+The exploratory plots suggest that the relationship between `Poverty` and depression is not strictly linear, while `SleepHrsNight` shows a clear non-linear, U-shaped association with depression probability.
+
+#### Adding smooth splines to the model
+
+To capture these **non-linear patterns** more accurately, a Generalized Additive Model (**GAM**) with **smooth spline terms** for `Poverty` and `SleepHrsNight` is being estimated using the `mgcv` package.
+
+```{r}
+#| label: "GAM_Binomial_1"
+#| message: false
+
+gam_depressed_1 <- gam(Depressed_bin ~ s(Poverty) + s(SleepHrsNight) +
+                       Gender + MaritalStatus + SleepTrouble + PhysActive,
+                     data = Depressed_data_imp, family = binomial)
+summary(gam_depressed_1)
+
+```
+
+The GAM results confirm that both `Poverty` and `SleepHrsNight` exhibit **significant non-linear effects** on depression probability, as indicated by high estimated degrees of freedom (**edf \> 6**) and p-values \< 0.001.
+
+#### Final interpretation of the GAM model
+
+We have strong evidence against the null hypothesis that several factors have no effect on depression. Being **male** (Estimate = –0.31, p \< 0.001), being **married** (–0.67, p \< 0.001), and being **physically active** (–0.38, p \< 0.001) are all associated with lower odds of depression, while experiencing **sleep trouble** (+0.85, p \< 0.001) is associated with substantially higher odds. Individuals who are **widowed** also show a significantly lower risk (–0.54, p \< 0.001) compared to the reference category.
+
+The smooth terms for **Poverty** (edf = 6.29, p \< 0.001) and **SleepHrsNight** (edf = 7.84, p \< 0.001) further indicate **significant non-linear effects** on depression probability. Overall, the model explains about **10% of the deviance**, suggesting that both socioeconomic and lifestyle factors meaningfully contribute to the likelihood of depression.
+
+### Measure of Fit
+
+#### ANOVA: comparing GLM and GAM models
+
+As a **preliminary check**, an analysis of deviance (ANOVA) is being conducted to test whether the GAM provides a statistically significant improvement over the simpler GLM.
+
+```{r}
+#| label: "ANOVA_GLM_GAM"
+#| message: false
+
+anova(glm_depressed_3, gam_depressed_1, test = "Chisq")
+
+```
+
+The analysis of deviance confirmed that **the GAM significantly improved model fit** compared to the linear model (χ² = 69.10, df = 12.14, p \< 0.001), indicating that the inclusion of non-linear smooth terms for `Poverty` and `SleepHrsNight` provides a statistically better representation of the data.
+
+#### Akaike Information Criterion (AIC)
+
+The AIC is a commonly used measure of model fit that balances model accuracy and complexity. It is chosen because it allows a direct **comparison between models with different numbers of parameters**, penalizing excessive complexity while rewarding better data fit.
+
+```{r}
+#| label: "AIC_GLM_GAM"
+#| message: false
+
+AIC(glm_depressed_3, gam_depressed_1)
+
+```
+
+The **GAM achieved a lower AIC** (6072.4) compared to the linear GLM (6117.2), indicating a **better overall model fit** even after accounting for the increased model complexity.
