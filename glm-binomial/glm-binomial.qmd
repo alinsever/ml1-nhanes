@@ -15,21 +15,6 @@ library(mgcv)
 
 ```
 
-## Data: NHANES (National Health and Nutrition Examination Survey)
-
-We checked three different data sets:
-
--   ISLR, Introduction to Statistical Learning (book/package): `wages`
-
--   National Health and Nutrition Examination Survey: `nhanes`
-
--   UCI University of California, Irvine, Machine Learning Repository: `AdultUCI`
-
-All three data sets meet the requirements for the project. Given the different analyses we will be conducting in the project, we opted for the data set with the **broadest range of variables**.
-
-And: The topic of health also immediately **appealed to us**.
-
-Selecting a few variables makes handling easier.
 
 ```{r}
 #| label: "nhanes dataset"
@@ -63,43 +48,6 @@ str(nhanes_sub)
 
 ```
 
-### Types of variables in the nhanes dataset: (i.e. nhanes_sub)
-
-| Variable | Type | Description / Example |
-|-------------------|-------------------|----------------------------------|
-| **SurveyYr** | categorical | Survey year (`2009_10`, `2011_12`) |
-| **Gender** | binary | Gender (`male`, `female`) |
-| **Age** | count | Age in years (0–80, integers) |
-| **AgeDecade** | categorical | Age in decades (`20-29`, `30-39`, …) |
-| **Race1** | categorical | Ethnicity (`Black`, `White`, `Mexican`, `Hispanic`, `Other`) |
-| **Education** | categorical | Education level (`8th Grade`, `Some College`, …) |
-| **MaritalStatus** | categorical | Marital status (`Married`, `Divorced`, `Widowed`, …) |
-| **HHIncome** | categorical | Household income class (`0–4999`, `50–74k`, …) |
-| **HHIncomeMid** | continuous | Median household income (numeric, in \$) |
-| **Poverty** | continuous | Poverty index (income-to-poverty ratio) |
-| **HomeRooms** | count | Number of rooms in the household |
-| **HomeOwn** | categorical | Home ownership (`Own`, `Rent`, `Other`) |
-| **Height** | continuous | Height in cm |
-| **Weight** | continuous | Weight in kg |
-| **BMI** | continuous | Body Mass Index |
-| **HealthGen** | categorical | Self-rated health (`Excellent`, `Fair`, …) |
-| **Pulse** | continuous | Resting heart rate (beats per minute) |
-| **BPSysAve** | continuous | Average systolic blood pressure |
-| **BPDiaAve** | continuous | Average diastolic blood pressure |
-| **PhysActive** | binary | Physically active (`Yes`/`No`) |
-| **PhysActiveDays** | count | Number of physically active days per week (0–7) |
-| **SleepHrsNight** | count | Hours of sleep per night |
-| **SleepTrouble** | binary | Trouble sleeping (`Yes`/`No`) |
-| **Alcohol12PlusYr** | binary | Ever drank alcohol (≥12 drinks per year, `Yes`/`No`) |
-| **AlcoholDay** | count | Number of alcoholic drinks per day |
-| **AlcoholYear** | count | Number of alcoholic drinks per year |
-| **SmokeNow** | binary | Currently smokes (`Yes`/`No`) |
-| **Smoke100** | binary | Ever smoked ≥100 cigarettes (`Yes`/`No`) |
-| **SmokeAge** | count | Age at smoking initiation |
-| **DaysPhysHlthBad** | count | Days with poor physical health (0–30) |
-| **DaysMentHlthBad** | count | Days with poor mental health (0–30) |
-| **LittleInterest** | binary | Little interest in activities (`Yes`/`No`) |
-| **Depressed** | categorical | Times feeling depressed (None, Most, Several, NAs) |
 
 ## Binomial models
 
@@ -427,3 +375,116 @@ AIC(glm_depressed_3, gam_depressed_1)
 ```
 
 The **GAM achieved a lower AIC** (6072.4) compared to the linear GLM (6117.2), indicating a **better overall model fit** even after accounting for the increased model complexity.
+
+### Confusion matrix
+
+Now we directly check how good the prediction of the model are. Therefore we assign predictions \> 0.5 as 1 and \< 0.5 as 0. First we define a function providing accuracy, sensitivity, specifity and precision.
+
+```{r}
+#| label: "Confusion_Matrix_GLM"
+
+# Function for confusion matrix
+eval_model <- function(model, threshold = 0.5) {
+  # predicted probabilities
+  pred_prob <- fitted(model)
+  
+  # classification based on predicted probabilities
+  pred_class <- ifelse(pred_prob > threshold, "yes", "no")
+  pred_class <- factor(pred_class, levels = c("no", "yes"))
+  
+  # real values
+  actual <- model$y
+  actual <- factor(ifelse(actual == 1, "yes", "no"), levels = c("no", "yes"))
+  
+  # Confusion Matrix
+  cm <- table(Predicted = pred_class, Actual = actual)
+  
+  # calculate the measures
+  accuracy <- sum(diag(cm)) / sum(cm)
+  sensitivity <- cm[2,2] / sum(cm[,2])  # True Positive Rate ('Recall')
+  specificity <- cm[1,1] / sum(cm[,1])  # True Negative Rate
+  precision <- cm[2,2] / sum(cm[2,])    # Positive Predictive Value
+  
+  # Output
+  list(
+    confusion_matrix = cm,
+    accuracy = accuracy,
+    sensitivity = sensitivity,
+    specificity = specificity,
+    precision = precision
+  )
+}
+
+```
+
+Then we use the function to calculate these measures for the two models.
+
+```{r}
+#| label: "Evaluate models"
+
+# Evaluate Model 1
+cat("=== Model 1 (with Age and BMI) ===\n")
+eval_1 <- eval_model(glm_depressed_1b)
+print(eval_1$confusion_matrix)
+cat("\nAccuracy:", round(eval_1$accuracy, 3))
+cat("\nSensitivity (Recall):", round(eval_1$sensitivity, 3))
+cat("\nSpecificity:", round(eval_1$specificity, 3))
+cat("\nPrecision:", round(eval_1$precision, 3))
+
+# Evaluate Model 3
+cat("\n\n=== Model 3 (without Age, BMI, HealthGen) ===\n")
+eval_3 <- eval_model(glm_depressed_3)
+print(eval_3$confusion_matrix)
+cat("\nAccuracy:", round(eval_3$accuracy, 3))
+cat("\nSensitivity (Recall):", round(eval_3$sensitivity, 3))
+cat("\nSpecificity:", round(eval_3$specificity, 3))
+cat("\nPrecision:", round(eval_3$precision, 3))
+
+```
+
+#### Interpretation: Confusion Matrix Results
+
+Both models show **high accuracy** (79%), but this is misleading due to the **imbalanced dataset** (most observations are non-depressed).
+
+**Key problem**: Both models are **extremely conservative** at the default 0.5 threshold: - Very low **sensitivity** (9-15%) – they miss most depressed cases - Very high **specificity** (97-98%) – they rarely misclassify non-depressed individuals - Moderate **precision** (50-56%)
+
+**We could lower the classification threshold** (e.g., to 0.3) to improve sensitivity, accepting a trade-off with lower specificity. This is more appropriate for screening purposes.
+
+```{r}
+#| label: "Evaluate models with lower threshold"
+
+# Evaluate Model 1
+cat("=== Model 1 (with Age and BMI) Threshold = 0.3 ===\n")
+eval_1 <- eval_model(glm_depressed_1b, threshold = 0.3)
+print(eval_1$confusion_matrix)
+cat("\nAccuracy:", round(eval_1$accuracy, 3))
+cat("\nSensitivity (Recall):", round(eval_1$sensitivity, 3))
+cat("\nSpecificity:", round(eval_1$specificity, 3))
+cat("\nPrecision:", round(eval_1$precision, 3))
+
+# Evaluate Model 3
+cat("\n\n=== Model 3 (without Age, BMI, HealthGen) Threshold = 0.3  ===\n")
+eval_3 <- eval_model(glm_depressed_3, threshold = 0.3)
+print(eval_3$confusion_matrix)
+cat("\nAccuracy:", round(eval_3$accuracy, 3))
+cat("\nSensitivity (Recall):", round(eval_3$sensitivity, 3))
+cat("\nSpecificity:", round(eval_3$specificity, 3))
+cat("\nPrecision:", round(eval_3$precision, 3))
+
+```
+
+#### Interpretation: Threshold = 0.3
+
+Lowering the threshold to 0.3 substantially **improves detection of depressed individuals**: Model 1 now identifies **45%** of depressed cases (vs. 14.9% at 0.5), while Model 3 identifies **41.8%** (vs. 9.4%).
+
+The trade-off is **lower specificity** (\~84%), meaning more false positives. However, this is often acceptable in mental health screening, where missing a depressed person is more problematic than a false alarm.
+
+**Precision** remains around **42-44%** – when depression is predicted, it's correct less than half the time. While this seems low, it's reasonable for an initial screening tool that would be followed by clinical assessment.
+
+**Conclusion**: With threshold = 0.3, both models are more balanced. Model 1 performs slightly better, but **Model 3 remains preferable** given conceptual concerns about including variables potentially overlapping with depression.
+
+### Note on Overdispersion
+
+Since the outcome variable `Depressed_bin` is **binary** (individual observations coded as 0/1), there is **no concern about overdispersion** in this analysis. Overdispersion is only relevant for **aggregated binomial data** (e.g., "15 successes out of 20 trials"), where the observed variance can exceed the variance assumed by the binomial model.
+
+In this case, each observation follows a **Bernoulli distribution** (a special case of the binomial distribution with n=1), where the variance is fixed at p(1-p) and cannot be overdispersed.
