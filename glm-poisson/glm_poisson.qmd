@@ -1,0 +1,455 @@
+# GLM - Poisson 
+This document explore whether their a link between the numbers of drinks a day and physical and mental health.
+The dependant variable is a count variable, and is Poisson distributed.
+
+Thus, the following variables are of particular interest to us.
+
+**The outcome variable**
+
+* `AlcoholDay` - Outcome: The number of drinks per day
+
+**Direct physical health measurement**
+
+* `PhysActive`: Whether the person is active or not.
+* `PhysActiveDays`: Number of active days a week 
+* `HealthGen`: Self-rated health
+* `BMI`: Body-Mass-Index
+
+**Indirect physical health measurement**
+
+* `Pulse`: Resting heart rate (beats per minute)
+* `BPSysAve`: Average systolic blood pressure
+* `BPDiaAve`: Average diastolic blood pressure
+* `Weight`:  Weights, measure in KG
+* `SleepHrsNight`: Number of hours slept per night.
+
+**Measurement of mental health**
+
+* `DaysMentHlthBad`: The number of days with bad mental health
+* `LittleInterest`: Binary, whether there is little interest in activities or not
+* `Depressed`: Binary, wether feeling depressed or not.
+
+```{r}
+#| title: '[library]'
+library(readr)
+library(here)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(DataExplorer)
+library(patchwork)
+library(mice)
+library(lattice)
+library(mgcv)
+```
+
+```{r}
+#| title: '[load data]'
+nhanes <- readRDS(here("nhanes.rds"))
+
+nhanes <- nhanes %>%
+				mutate(
+							 Gender = as.factor(Gender),
+							 AgeDecade = as.factor(AgeDecade),
+							 Race1 = as.factor(Race1),
+							 Education = as.factor(Education),
+							 MaritalStatus = as.factor(MaritalStatus),
+							 HHIncome = as.factor(HHIncome),
+							 HealthGen = as.factor(HealthGen),
+							 PhysActive = as.factor(PhysActive),
+							 SleepTrouble = as.factor(SleepTrouble),
+							 Alcohol12PlusYr = as.factor(Alcohol12PlusYr),
+							 SmokeNow = as.factor(SmokeNow),
+							 Smoke100 = as.factor(Smoke100),
+							 LittleInterest = as.factor(LittleInterest),
+							 Depressed = as.factor(Depressed)
+				)
+```
+
+# Data exploration
+
+A first view of the data allows us to see the amount of missing values, prompting us to be careful when dealing with the model.
+Additionally, only 9% of the rows are complete. 
+
+```{r}
+#| title: '[missing_values]'
+DataExplorer::introduce(nhanes)
+DataExplorer::plot_missing(nhanes)
+```
+
+ ## Outcome Distribution
+This outcome variable seems to behave like a reguarly poisson distribution, as far as my understanding of Poisson distribution goes.
+
+```{r}
+#| title: '[outcome-distribution]'
+ggplot(
+			 data = nhanes,
+			 mapping = aes(x = AlcoholDay)
+) +
+geom_histogram(aes(y = ..density..), color = "blue", fill = "blue", alpha=0.3) +
+ggtitle("Zero inflated Poisson distribution")
+```
+
+Find below some key figures helping us get a better idea of the distribution in numbers.
+We observe a low median at 2, with a high standard deviation. 
+Additionally, the mean is higher than the median due to the influence of outliers.
+This highlights the poisson distribution in numbers.
+
+```{r}
+#| lines_to_next_cell: 0
+#| title: '[outcome-keyfig]'
+nhanes %>%
+				summarize(
+									mean = mean(AlcoholDay, na.rm = T),
+									median = median(AlcoholDay, na.rm = T),
+									sd = sd(AlcoholDay, na.rm = T),
+									quartile1 = quantile(AlcoholDay, 0.25, na.rm = T),
+
+									quartile3 = quantile(AlcoholDay, 0.75, na.rm = T),
+				)
+```
+
+## Predictors
+
+```{r}
+#| title: '[pred-prep]'
+phys_pred <- nhanes %>%
+				select(
+							 PhysActive,
+							 PhysActiveDays,
+							 HealthGen,
+							 BMI,
+							 Pulse,
+							 BPSysAve,
+							 BPDiaAve,
+							 Weight)
+
+ment_pred <- nhanes %>%
+				select(
+							 SleepHrsNight,
+							 DaysMentHlthBad,
+							 LittleInterest,
+							 Depressed
+				)
+```
+
+Overall, most of the data looks relatively normally distributed, with some being positively or negatively skewed. We can imagine logarithmically transform those distribution to make them more normal, e.g BMI or Weight.
+However, the transformation is debatable as they're not overly skewed.
+
+```{r}
+#| title: '[pred-histogram]'
+DataExplorer::plot_histogram(phys_pred)
+DataExplorer::plot_histogram(ment_pred)
+```
+
+There seem to be more physically active and healthy people than unhealthy. 
+Additionnaly, as expected, `Depressed` and `LittleInterest` are very similar.
+It is only natural since have low interest is a symptom of depressiong.
+More specifically, we often talks about 'aboulia', the lost of motivation, and 'anhedonia', the lack of interest.
+However, it is important to mention that those information were collected using self-rated questionnaire.
+Hence, multiple cognitive bias play a role and might bias the result.
+Some might be induced by the survey itself (scale, instructions, ...) other simply because of the subjectiveness of the human mind (social desirability bias, cognitive dissonance, ego, ...).
+Hence, I would be care treating with those kind of variables.
+Prioritizing less biased information sources, such as validitated questionnaires or physical measures.
+Those two information seems to come from single items of such questionnaire, making their reliability low.
+
+```{r}
+#| title: '[pred-bar]'
+p1 <- ggplot(
+						 data = phys_pred,
+						 mapping = aes(x = PhysActive)) +
+geom_bar(color = "blue", fill = "blue", alpha = 0.3) +
+ggtitle("Barplot self-rated physical activity") + 
+theme(axis.text.x = element_text(angle=75, vjust=0.5, hjust=0.5))
+
+p2 <- ggplot(
+						 data = phys_pred,
+						 mapping = aes(x = HealthGen)) +
+geom_bar(color = "blue", fill = "blue", alpha = 0.3) +
+ggtitle("Barplot self-rated health") +
+theme(axis.text.x = element_text(angle=75, vjust=0.5, hjust=0.5))
+
+p3 <- ggplot(
+						 data = ment_pred,
+						 mapping = aes(x = Depressed)) +
+geom_bar(color = "blue", fill = "blue", alpha = 0.3) +
+ggtitle("Barplot self-rated depressed") +
+theme(axis.text.x = element_text(angle=75, vjust=0.5, hjust=0.5))
+
+p4 <- ggplot(
+						 data = ment_pred,
+						 mapping = aes(x = LittleInterest)) +
+geom_bar(color = "blue", fill = "blue", alpha = 0.3) +
+ggtitle("Barplot self-rated interest") +
+theme(axis.text.x = element_text(angle=75, vjust=0.5, hjust=0.5))
+
+(p1 + p2) / (p3 + p4)
+```
+
+Find below a few helper functions design to make scatterplots.
+
+```{r}
+#| lines_to_next_cell: 0
+#| title: '[helper-pred-scatter]'
+double_scatter <- function(colname, smooth=F, model="None"){
+				p1 <- ggplot(
+							 data = nhanes,
+							 mapping = aes(x = AlcoholDay, y = !!sym(colname))) +
+				geom_point(color = "blue", alpha = 0.3)
+				
+				p2 <- ggplot(
+							 data = nhanes,
+							 mapping = aes(x = log(AlcoholDay), y = !!sym(colname))) +
+				geom_point(color = "blue", alpha = 0.3)
+
+				if (smooth == T){
+								if (model != "None"){
+												p1 <-	p1 + geom_smooth(method = model)
+												p2 <-	p2 + geom_smooth(method = model)
+								} else {
+												p1 <-	p1 + geom_smooth(method = NULL)
+												p2 <-	p2 + geom_smooth(method = NULL)
+								}
+				}
+				
+				print(p1 + p2 + plot_annotation(title = "Outcome-Predictor Scatterplot "))
+}
+
+double_scatter_by <- function(colname, by, smooth=F, model="None"){
+				p1 <- ggplot(
+							 data = nhanes,
+							 mapping = aes(x = AlcoholDay, y = !!sym(colname), color = !!sym(by))) +
+				geom_point(alpha = 0.3)
+				
+				p2 <- ggplot(
+							 data = nhanes,
+							 mapping = aes(x = log(AlcoholDay), y = !!sym(colname), color = !!sym(by))) +
+				geom_point(alpha = 0.3)
+				
+				if (smooth == T){
+								if (model != "None"){
+												p1 <-	p1 + geom_smooth(method = model)
+												p2 <-	p2 + geom_smooth(method = model)
+								} else {
+												p1 <-	p1 + geom_smooth(method = NULL)
+												p2 <-	p2 + geom_smooth(method = NULL)
+								}
+				}
+
+				print(p1 + p2 + plot_annotation(title = "Outcome-Predictor Scatterplot "))
+}
+```
+
+In the following plot, we use the logarithmic transformation to 'squeeze' the data in a smaller range, enabling us to see the pattern better compare the plot on the left.
+
+A common pattern is a decrease of variance alongside an increase of drinks per day.
+
+Concerning trends, we observe the following.
+
+**Age** shows a clear downward trends, without taking into account the overfitting of the GAM model on outliers. 
+
+Naturally, **weight** seem to be increase over drink per alcohol, as alcohol is has a high caloric content due to sugar.
+
+Less influence is **BMI**, showing a more mildle increase.
+
+Poverty seems to have clear effect on alcohol consumption. As the consumption increase, the poverty index decrease. This indicated that the ratio between income and poverty threshold diminishes.
+
+```{r}
+#| title: '[pred-scatter]'
+double_scatter("BMI", smooth=T)
+double_scatter("BPSysAve", smooth=T)
+double_scatter("Weight", smooth=T)
+double_scatter("Age", smooth=T)
+double_scatter("Poverty", smooth=T)
+```
+
+```{r}
+#| title: '[pred-scatter-lm]'
+double_scatter("BMI", smooth=T, model="lm")
+double_scatter("BPSysAve", smooth=T, model="lm")
+double_scatter("Weight", smooth=T, model="lm")
+double_scatter("Age", smooth=T, model="lm")
+```
+
+Previous finding seems to be influenced by gender too.
+
+```{r}
+#| title: '[pred-scatter-by-gender]'
+double_scatter_by("BMI", by="Gender", smooth=T)
+double_scatter_by("BPSysAve", by="Gender", smooth=T)
+double_scatter_by("Weight", by="Gender", smooth=T)
+double_scatter_by("Age", by="Gender", smooth=T)
+```
+
+Race doesn't seem to have much of an incluence.
+
+```{r}
+#| title: '[pred-scatter-by-race]'
+double_scatter_by("BMI", by="Race1", smooth=T)
+double_scatter_by("BPSysAve", by="Race1", smooth=T)
+double_scatter_by("Weight", by="Race1", smooth=T)
+double_scatter_by("Age", by="Race1", smooth=T)
+```
+
+Education seems to influence alcohol consumption conditioned on weight, particular for education stopping at 9-11th grade.
+
+```{r}
+#| title: '[pred-scatter-by-education]'
+double_scatter_by("BMI", by="Education", smooth=T)
+double_scatter_by("BPSysAve", by="Education", smooth=T)
+double_scatter_by("Weight", by="Education", smooth=T)
+double_scatter_by("Age", by="Education", smooth=T)
+```
+
+Alcohol consumption seems to differ by education level.
+
+```{r}
+#| title: '[pred-bar-by-education]'
+ggplot(
+						 data = nhanes,
+						 mapping = aes(x = AlcoholDay, fill=Education)) +
+geom_bar(alpha = 0.7) +
+ggtitle("Barplot OH consumption by education") + 
+theme(axis.text.x = element_text(angle=75, vjust=0.5, hjust=0.5))
+```
+
+Same obervation when conditioning a decade of age, which is ot be expected too.
+
+```{r}
+#| title: '[pred-scatter-by-age]'
+double_scatter_by("BMI", by="AgeDecade", smooth=T)
+double_scatter_by("BPSysAve", by="AgeDecade", smooth=T)
+double_scatter_by("Weight", by="AgeDecade", smooth=T)
+double_scatter_by("Age", by="AgeDecade", smooth=T)
+```
+
+# Modeling
+
+### Model Choice
+Poisson distribution can be modelled using GLM or GAM by specifying the family distribution.
+This accounts for the discrete nature of the data, which Gaussian doesn't handle. 
+There is a discussion for both GLM and GAM model.
+In our case, a non-linear model would probably reflect the relationship of the data better.
+However, this come at the cost of interpretation.
+Alternatively, the linear model seem like a possible solution withing the bound of the data.
+Indeed, such model becomes entirely unreliable after 20drinks a day, as it can't model the relationship effectively.
+However, it enables us better interpretation and allows for drawing conclusion on coefficient. Due to the practicality of the current research questions, interpretation is keay. Hence, we'll go with a linear model: a generalized linear model for Poisson Distribution.
+
+### Model
+For exploring effects of physical health on daily alcohol consumption, we'll prefer include physically measured variables to ensure validity.
+However, variables measured aren't to be entirely excluded.
+
+* First of all, results from surveys aren't completely wrong, and can still be considered. 
+* Secondly, it is also important to considered subjectivity and include it, as everyone's reality is partly dictated by emotions.
+
+Consequently, we'll include the following indicators ofphysical health.
+
+ * `Weight`, which showed a small increasing trend.
+ * `BPSysAve` & `BPDiaAve`, which are both indicator colesterol and cardiovascular deseases.
+ * `PhysActiveDays`
+ * `SleepHrsNight`, which both a predictor of worsening physical and mental health conditions.
+
+For exploring effects of mental health on daily alcohol consumption, we'll include `Depressed`, as well as `DaysMentHlthBad`.
+Including `LittleInterest` is unnecessary, as values are entirely similar to the `Depressed` variable.
+
+Finally, as covariates we'll include the following demographic variables: 
+* `Age`, which showed clear influence on alcohol consumption
+* `Gender`, which similarly seemed to influence on alcohol consumption
+* `SurveyYr`, for time-effects
+* `Poverty`, 
+* `Education`, which showed difference in OH consommation across education level.
+
+### Missing Values Cleaning
+Before fitting the model, it is important to establish a strategy as to how missing values would be handled.
+20% of the observation of missings.
+Removing row-wise would remove 75% of the rows.
+
+```{r}
+model_nhanes <- nhanes %>%
+				select(AlcoholDay, Weight, BPSysAve, PhysActiveDays, SleepHrsNight, Depressed, DaysMentHlthBad, Education, Poverty, Gender, SurveyYr, Age)
+
+na_tot = sum(is.na(model_nhanes))
+items_tot = dim(model_nhanes)[1] * dim(model_nhanes)[2]
+print(paste0("Proportion of missing values: ", na_tot / items_tot))
+```
+
+The response variable contains more than 50% missing values.
+Imputing isn't justified either, due to the high number of observation in most predictors
+Pairwise deletion of missing value is feasable, however this would mean doing an analysis without the complete picture.
+In our case, listwise deletion remove 75% of the dataset's observation.
+Although a lot, we're still left with 2318 clean observation, which is enough for a linear model.
+
+```{r}
+#| title: '[nan-drop]'
+model_nhanes <- model_nhanes %>% drop_na()
+```
+
+```{r}
+nrows_before <- dim(model_nhanes)[1]
+nrows_after <- model_nhanes %>%
+				drop_na(.) %>%
+				dim(.)
+print(paste0("Number of rows before removal: ", nrows_before))
+print(paste0("Number of rows after removal: ", nrows_after))
+```
+
+### Multicollinearity
+Before fitting the model, it is also important the check for multi-collinearity.
+
+Filtering for numerical variable and not factors, we observe no strong multi-collinearity.
+
+```{r}
+#| lines_to_next_cell: 2
+model_nhanes %>%
+				select(where(is.numeric), -AlcoholDay) %>%
+				cor(.)
+```
+
+ ### Model Fit
+
+According to the model, we found strong evidence under the null hypothesis that the difference in intercept in alcohol consumption between male and female, is, on average, significantly different from 0 at the 5% level.
+We observe similar evidence between the scale level 'Most' & 'Several' compared to 'None' of 'For the past 2 weeks, are often have you been feeling depressed?' for the `Depressed` variable.
+We observe similar evidence between 'College Grad' & 'Some College' compared to '8th Grade' education level.
+
+More specifically, on average, men drink 37.8% more than women. People having having a college degree drink 38% less than people having an education stopping at the 8th grade, while people who went to college drink 20% less. Additionnaly, people rating that they felt depressed 'Several' days for the past 2 weeks, drink 13.4% less than people rate 'None', while the people who felt depressed 'Most' of the days during the past 2 weeks drink 44.6% less.
+
+Similary, we found strong evidence under the null hypothesis that the coefficients of `Age`, `Poverty`, `SleepHrsNight` & `BPSysAve`, is, on average, significantly different from 0 at a the 5% level.
+Hence, we can rejet the null hypothesis stating `Age`, 'Poverty', 'BPSysAve' as well as `SleepHrsNight` have no effect on alcohol consumption.
+Indeed, both age the numbers of hours slept at night have a negative effect on alcohol consumption. 
+Poverty Index also seem to have a negative effect on alcohol consumption, indicating that an increase in poverty index decrease alcohol consumption. In order words, the richer the people, the less the drink alcohol daily.
+Additionnaly, a higher average systolic blood pressure have a positive effect on alcohol consumption. However, this seems to be a two-way effect, as we also have strong evidence that alcohol consumption increase average systolic blood pressure.
+Due to the non-linearity of the model, we cannot inteprete those coefficients.
+
+```{r}
+#| title: '[fit-model]'
+summary(glm(formula = AlcoholDay ~ Weight + BPSysAve + PhysActiveDays + SleepHrsNight + Depressed + DaysMentHlthBad + Education + Poverty + Gender + SurveyYr + Age, family = "poisson", data = model_nhanes))
+```
+
+```{r}
+summary(glm(formula = BPSysAve ~ Weight + AlcoholDay + PhysActiveDays + SleepHrsNight + Depressed + DaysMentHlthBad + Education + Poverty + Gender + SurveyYr + Age, family = "poisson", data = model_nhanes))
+```
+
+#### Dispersion
+As per the rule, `AlcoholDay` is overdispersed, indicating a non-linear increase of the variance for each count.
+
+```{r}
+#| title: '[fit-pool-disperion]'
+summary(glm(formula = AlcoholDay ~ Weight + BPSysAve + PhysActiveDays + SleepHrsNight + Depressed + DaysMentHlthBad + Education + Poverty + Gender + SurveyYr + Age, family = "quasipoisson", data = model_nhanes))
+```
+
+# Conclusion
+
+The Poisson regression analysis revealed significant associations between alcohol consumption and several demographic, socioeconomic, and health-related factors.
+
+On average, men consume approximately 37.8% more alcohol than women.
+Education level also plays a key role: individuals with a college degree drink about 38% less, and those with some college education drink about 20% less compared to those whose education stopped at the 8th grade. 
+Regarding mental health, participants reporting feeling depressed "Several" days in the past two weeks consume 13.4% less alcohol, while those feeling depressed "Most" days drink 44.6% less than those reporting no depressive feelings.
+
+Among continuous predictors, age and average nightly sleep duration both show significant negative effects on alcohol consumption—older individuals and those who sleep longer tend to drink less. 
+Similarly, a higher poverty index (indicating greater wealth) is associated with lower alcohol intake, suggesting that wealthier individuals tend to drink less daily.
+Conversely, higher average systolic blood pressure is positively associated with alcohol consumption, although this relationship appears bidirectional: increased alcohol intake may in turn elevate blood pressure.
+
+Overall, the model provides strong evidence that gender, education, depressive symptoms, 
+age, sleep duration, poverty index, and systolic blood pressure are all significant predictors 
+of daily alcohol consumption.
+
