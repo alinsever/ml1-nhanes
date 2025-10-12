@@ -415,18 +415,47 @@ More specifically, on average, men drink 37.8% more than women. People having ha
 
 Similary, we found strong evidence under the null hypothesis that the coefficients of `Age`, `Poverty`, `SleepHrsNight` & `BPSysAve`, is, on average, significantly different from 0 at a the 5% level.
 Hence, we can rejet the null hypothesis stating `Age`, 'Poverty', 'BPSysAve' as well as `SleepHrsNight` have no effect on alcohol consumption.
-Indeed, both age the numbers of hours slept at night have a negative effect on alcohol consumption. 
-Poverty Index also seem to have a negative effect on alcohol consumption, indicating that an increase in poverty index decrease alcohol consumption. In order words, the richer the people, the less the drink alcohol daily.
-Additionnaly, a higher average systolic blood pressure have a positive effect on alcohol consumption. However, this seems to be a two-way effect, as we also have strong evidence that alcohol consumption increase average systolic blood pressure.
-Due to the non-linearity of the model, we cannot inteprete those coefficients.
+Indeed, both age the numbers of hours slept at night have a negative effect on alcohol consumption.
+More specifically, considering all variables constant, a increase of one year (`Age`) implies a decrease of 1.53% of daily alcohol consumption.
+Moreover, considering all other variables constant, an increase of one hour slept per night decrease daily alcohol consumption by 3.8%.
+Poverty Index also seem to have a negative effect on alcohol consumption, indicating that an increase in poverty index decrease alcohol consumption. In order words, the richer the people, the less the drink alcohol daily. More specifically, all other variables constant, an increase of one unit in the poverty index decrease daily alcohol consumption by 3.5%.
+Additionnaly, a higher average systolic blood pressure have a positive effect on alcohol consumption. More specifically, considering all other variables constant, an increase of one systolic blood pressure point increase alcohol consumption by 0.26%. However, this seems to be a two-way effect, as we also have strong evidence that alcohol consumption increase average systolic blood pressure.
 
 ```{r}
 #| title: '[fit-model]'
-summary(glm(formula = AlcoholDay ~ Weight + BPSysAve + PhysActiveDays + SleepHrsNight + Depressed + DaysMentHlthBad + Education + Poverty + Gender + SurveyYr + Age, family = "poisson", data = model_nhanes))
+model <- glm(formula = AlcoholDay ~ Weight + BPSysAve + PhysActiveDays + SleepHrsNight + Depressed + DaysMentHlthBad + Education + Poverty + Gender + SurveyYr + Age, family = "poisson", data = model_nhanes)
+summary(model)
 ```
 
 ```{r}
 summary(glm(formula = BPSysAve ~ Weight + AlcoholDay + PhysActiveDays + SleepHrsNight + Depressed + DaysMentHlthBad + Education + Poverty + Gender + SurveyYr + Age, family = "poisson", data = model_nhanes))
+```
+
+Although this wasn't its purpose in the first place, both the residuals and the RMSE and MAE score indicated that the model cannot be used for predictive purposes.
+
+Indeed, the MAE indicate a average different of 60 drinks a day. 
+
+```{r}
+#| title: '[residuals]'
+ggplot(
+			 data = model_nhanes,
+			 mapping = aes(x = log(AlcoholDay), y = as.vector(model$residuals))) +
+geom_point(color = "blue", alpha = 0.3) +
+labs(y = "Residuals")
+ggtitle("Observed versus Residuals")
+```
+
+```{r}
+rmse <- function(y, y_pred){
+				score <- sqrt(mean((y - y_pred)^2))
+				return(score)
+}
+
+mae <- function(y, y_pred){
+				return(mean(abs(y - y_pred)))
+}
+print(paste0("RMSE: ", rmse(model_nhanes$AlcoholDay, exp(model$fitted.values))))
+print(paste0("MAE: ", mae(model_nhanes$AlcoholDay, exp(model$fitted.values))))
 ```
 
 #### Dispersion
