@@ -29,7 +29,7 @@ data(NHANES)
 # Subset with ~20 variables (all types included)
 nhanes_sub <- NHANES %>%
   select(
-    # demographie
+    # demography
     SurveyYr, Gender, Age, AgeDecade, Race1, Education, MaritalStatus,
     HHIncome, HHIncomeMid, Poverty, HomeRooms, HomeOwn,
     
