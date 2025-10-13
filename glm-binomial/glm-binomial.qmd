@@ -1,6 +1,10 @@
 ---
-title: "Daniel's Notebook"
-format: html
+title: "Binomial GLM and GAM"
+format: 
+  html:
+    toc: true
+    toc-depth: 4
+  
 ---
 
 ```{r}
@@ -14,7 +18,6 @@ library(pROC)
 library(mgcv)
 
 ```
-
 
 ```{r}
 #| label: "nhanes dataset"
@@ -47,7 +50,6 @@ nhanes_sub <- NHANES %>%
 str(nhanes_sub)
 
 ```
-
 
 ## Binomial models
 
@@ -281,9 +283,17 @@ To evaluate the discriminatory power of the logistic regression model (3rd), a *
 
 roc(glm_depressed_3$y, fitted(glm_depressed_3))
 
+# ROC-Kurve plotten
+roc_obj <- roc(glm_depressed_3$y, fitted(glm_depressed_3))
+plot(roc_obj)
+
+# Find optimal threshold (e.g. Youden-Index)
+coords(roc_obj, "best", ret = "threshold")
+
 ```
 
 The resulting **AUC of 0.71** indicates that the model distinguishes **reasonably well** between depressed and non-depressed individuals. While not exceptionally high, this level of accuracy is typical for psycho-social data and supports the model’s usefulness for explanatory purposes.
+We come back to the optimal threshold at the very end of this chapter when having a closer look at the confusion matrices.
 
 ### Generalized Additive Model (family: Binomial)
 
@@ -422,17 +432,8 @@ Then we use the function to calculate these measures for the two models.
 ```{r}
 #| label: "Evaluate models"
 
-# Evaluate Model 1
-cat("=== Model 1 (with Age and BMI) ===\n")
-eval_1 <- eval_model(glm_depressed_1b)
-print(eval_1$confusion_matrix)
-cat("\nAccuracy:", round(eval_1$accuracy, 3))
-cat("\nSensitivity (Recall):", round(eval_1$sensitivity, 3))
-cat("\nSpecificity:", round(eval_1$specificity, 3))
-cat("\nPrecision:", round(eval_1$precision, 3))
-
-# Evaluate Model 3
-cat("\n\n=== Model 3 (without Age, BMI, HealthGen) ===\n")
+# Evaluate GLM Model 3
+cat("=== GLM Model 3 (without Age, BMI, HealthGen) ===\n")
 eval_3 <- eval_model(glm_depressed_3)
 print(eval_3$confusion_matrix)
 cat("\nAccuracy:", round(eval_3$accuracy, 3))
@@ -440,30 +441,32 @@ cat("\nSensitivity (Recall):", round(eval_3$sensitivity, 3))
 cat("\nSpecificity:", round(eval_3$specificity, 3))
 cat("\nPrecision:", round(eval_3$precision, 3))
 
-```
-
-#### Interpretation: Confusion Matrix Results
-
-Both models show **high accuracy** (79%), but this is misleading due to the **imbalanced dataset** (most observations are non-depressed).
-
-**Key problem**: Both models are **extremely conservative** at the default 0.5 threshold: - Very low **sensitivity** (9-15%) – they miss most depressed cases - Very high **specificity** (97-98%) – they rarely misclassify non-depressed individuals - Moderate **precision** (50-56%)
-
-**We could lower the classification threshold** (e.g., to 0.3) to improve sensitivity, accepting a trade-off with lower specificity. This is more appropriate for screening purposes.
-
-```{r}
-#| label: "Evaluate models with lower threshold"
-
-# Evaluate Model 1
-cat("=== Model 1 (with Age and BMI) Threshold = 0.3 ===\n")
-eval_1 <- eval_model(glm_depressed_1b, threshold = 0.3)
+# Evaluate GAM Model 1
+cat("\n\n=== GAM Model 1 (with Age and BMI) ===\n")
+eval_1 <- eval_model(gam_depressed_1)
 print(eval_1$confusion_matrix)
 cat("\nAccuracy:", round(eval_1$accuracy, 3))
 cat("\nSensitivity (Recall):", round(eval_1$sensitivity, 3))
 cat("\nSpecificity:", round(eval_1$specificity, 3))
 cat("\nPrecision:", round(eval_1$precision, 3))
 
-# Evaluate Model 3
-cat("\n\n=== Model 3 (without Age, BMI, HealthGen) Threshold = 0.3  ===\n")
+```
+
+#### Interpretation: Confusion Matrix Results (GLM vs GAM)
+
+Both models show **high accuracy** (\~79%), but this is misleading due to the **imbalanced dataset** (most observations are non-depressed).
+
+**Key problem**: Both models are **extremely conservative** at the default 0.5 threshold: - Very low **sensitivity** (9-12%) – they miss most depressed cases - Very high **specificity** (\~97%) – they rarely misclassify non-depressed individuals - Moderate **precision** (50-54%)
+
+The **GAM performs slightly better** than the GLM, with higher sensitivity (11.8% vs. 9.4%) and precision (54% vs. 50%), suggesting that modeling non-linear effects provides marginal improvement in identifying depressed individuals.
+
+We could **lower the classification threshold** (e.g., to 0.3) to improve sensitivity, accepting a trade-off with lower specificity. This is more appropriate for screening purposes.
+
+```{r}
+#| label: "Evaluate models with lower threshold"
+
+# Evaluate GLM Model 3
+cat("=== GLM Model 3 (threshold = 0.3) ===\n")
 eval_3 <- eval_model(glm_depressed_3, threshold = 0.3)
 print(eval_3$confusion_matrix)
 cat("\nAccuracy:", round(eval_3$accuracy, 3))
@@ -471,17 +474,27 @@ cat("\nSensitivity (Recall):", round(eval_3$sensitivity, 3))
 cat("\nSpecificity:", round(eval_3$specificity, 3))
 cat("\nPrecision:", round(eval_3$precision, 3))
 
+# Evaluate GAM Model 1
+cat("\n\n=== GAM Model 1 (threshold = 0.3) ===\n")
+eval_1 <- eval_model(gam_depressed_1, threshold = 0.3)
+print(eval_1$confusion_matrix)
+cat("\nAccuracy:", round(eval_1$accuracy, 3))
+cat("\nSensitivity (Recall):", round(eval_1$sensitivity, 3))
+cat("\nSpecificity:", round(eval_1$specificity, 3))
+cat("\nPrecision:", round(eval_1$precision, 3))
+
 ```
 
 #### Interpretation: Threshold = 0.3
 
-Lowering the threshold to 0.3 substantially **improves detection of depressed individuals**: Model 1 now identifies **45%** of depressed cases (vs. 14.9% at 0.5), while Model 3 identifies **41.8%** (vs. 9.4%).
+Lowering the threshold to 0.3 substantially **improves detection of depressed individuals**: The GAM now identifies **43.5%** of depressed cases (vs. 11.8% at 0.5), while the GLM identifies **41.8%** (vs. 9.4%).
 
-The trade-off is **lower specificity** (\~84%), meaning more false positives. However, this is often acceptable in mental health screening, where missing a depressed person is more problematic than a false alarm.
+The trade-off is **lower specificity** (~84%), meaning more false positives. However, this is often acceptable in mental health screening, where missing a depressed person is more problematic than a false alarm.
 
-**Precision** remains around **42-44%** – when depression is predicted, it's correct less than half the time. While this seems low, it's reasonable for an initial screening tool that would be followed by clinical assessment.
+**Precision** remains around **42%** – when depression is predicted, it's correct less than half the time. While this seems low, it's reasonable for an initial screening tool that would be followed by clinical assessment.
 
-**Conclusion**: With threshold = 0.3, both models are more balanced. Model 1 performs slightly better, but **Model 3 remains preferable** given conceptual concerns about including variables potentially overlapping with depression.
+**Conclusion**: With threshold = 0.3, both models are more balanced. The **GAM performs slightly better**, with higher sensitivity (43.5% vs. 41.8%), supporting the inclusion of non-linear effects for `Poverty` and `SleepHrsNight`.
+
 
 ### Note on Overdispersion
 
