@@ -41,6 +41,7 @@ library(patchwork)
 library(mice)
 library(lattice)
 library(mgcv)
+library(multcomp)
 ```
 
 ```{r}
@@ -113,19 +114,10 @@ nhanes %>%
 
 ```{r}
 #| title: '[pred-prep]'
-phys_pred <- nhanes %>%
-				select(
-							 PhysActive,
-							 PhysActiveDays,
-							 HealthGen,
-							 BMI,
-							 Pulse,
-							 BPSysAve,
-							 BPDiaAve,
-							 Weight)
+phys_pred <- nhanes %>% dplyr::select(PhysActive, PhysActiveDays, HealthGen, BMI, Pulse, BPSysAve, BPDiaAve, Weight)
 
 ment_pred <- nhanes %>%
-				select(
+				dplyr::select(
 							 SleepHrsNight,
 							 DaysMentHlthBad,
 							 LittleInterest,
@@ -366,7 +358,7 @@ Removing row-wise would remove 75% of the rows.
 
 ```{r}
 model_nhanes <- nhanes %>%
-				select(AlcoholDay, Weight, BPSysAve, PhysActiveDays, SleepHrsNight, Depressed, DaysMentHlthBad, Education, Poverty, Gender, SurveyYr, Age)
+				dplyr::select(AlcoholDay, Weight, BPSysAve, PhysActiveDays, SleepHrsNight, Depressed, DaysMentHlthBad, Education, Poverty, Gender, SurveyYr, Age)
 
 na_tot = sum(is.na(model_nhanes))
 items_tot = dim(model_nhanes)[1] * dim(model_nhanes)[2]
@@ -401,7 +393,7 @@ Filtering for numerical variable and not factors, we observe no strong multi-col
 ```{r}
 #| lines_to_next_cell: 2
 model_nhanes %>%
-				select(where(is.numeric), -AlcoholDay) %>%
+				dplyr::select(where(is.numeric), -AlcoholDay) %>%
 				cor(.)
 ```
 
@@ -429,6 +421,52 @@ summary(model)
 
 ```{r}
 summary(glm(formula = BPSysAve ~ Weight + AlcoholDay + PhysActiveDays + SleepHrsNight + Depressed + DaysMentHlthBad + Education + Poverty + Gender + SurveyYr + Age, family = "poisson", data = model_nhanes))
+```
+
+### Model Evaluation
+
+#### Akaike's information criterion
+Model evaluation is a tricky subject.
+It is considered bad practice to remove predictors or tweak the model based on observed p-values when doing inference testing.
+Indeed, this bias the p-values.
+
+The Akaike's Information Criterion below output a fitting statisitcs of the model by taking into account its complexity.
+The very high coefficient suggests a very poor fit considering complexity.
+This is naturally understandable, as the model contains a lot of predictors, most of them unsignificant. 
+
+```{r}
+print(paste0("Akaike's Information Criterion: ", AIC(model)))
+```
+
+ #### Single-term deletions
+However, a single-term deletions analysis reveal that all of of the previously indified significant predictors lead to 'significant' changes in model fit when removed. 
+Moreover, no other predictors that the ones identified lead to significant change in model fit when removing.
+This supports the validitiy of the previously found effects.
+
+```{r}
+drop1(model, test="F")
+```
+
+ #### General Linear Hypothesis
+Furthermore, the model revealed significant effects of multiple continuous predictors.
+The following code explores the difference between each of their levels.
+
+We observed strong evidence that the alcohol consumption in college graduate student and college student is different from the 8th grade education level people.
+Moreover, by exploring the difference in alcohol consumption between college graduate and college student more in details, 
+we optain strong evidence that the daily alcohol consumption betwee college graduate and some college student is, on average, different from 0.
+
+```{r}
+levels(model_nhanes$Education) <- c("8thGrade", "9-11thGrade", "HighSchool", "SomeCollege", "CollegeGrad")
+ 
+glht_model <- glm(formula = AlcoholDay ~ Weight + BPSysAve + PhysActiveDays + SleepHrsNight + Depressed + DaysMentHlthBad + Education + Poverty + Gender + SurveyYr + Age, family = "poisson", data = model_nhanes)
+
+summary(glht(model = glht_model, linfct = mcp(Education = c("CollegeGrad - SomeCollege = 0"))))
+```
+
+Similary, we observe strong evidence that the daily alcohol consumption between people feeling depressed "Several" days during the past 2 weeks prior to evaluation is, on average, different than people feeling depressed "Most" days during the past 2 weeks prior to evaluation.
+
+```{r}
+summary(glht(model = glht_model, linfct = mcp(Depressed = c("Several - Most = 0"))))
 ```
 
 Although this wasn't its purpose in the first place, both the residuals and the RMSE and MAE score indicated that the model cannot be used for predictive purposes.
