@@ -306,8 +306,8 @@ fitted <- seqnn %>%
 						valid_data = valid_loader)
 ```
 
-The result on the validation are fine.
-The error at an average of 3 daily drinks remains stable throughout the whole range of target label values. 
+The model error rate increase as the number of daily drinks increases, which normal as those observation are underrepresentated in our dataset.
+However, the mean error rate is around 2,14 drinks, which can be considered good.
 A good point is the model generalize well as error rate don't drop between validation set testing set.
 Quick remainders, the data has been transformed, hence `y_true` are not count anymore, although as we can see on the plot, they keep their discrete nature.
 Hence, we reverse the `min-max` normalization procedure to have interpretable values.
@@ -336,12 +336,16 @@ val_result <- data.frame(
 										 y_true = y_true,
 										 y_true_unnorm = y_true_unnorm,
 										 y_pred = y_pred,
-										 y_pred_unnorm = y_pred_unnorm
+										 y_pred_unnorm = y_pred_unnorm,
+										 res = y_true - y_pred,
+										 res_unnorm = y_true_unnorm - y_pred_unnorm
 										 ) %>%				
 				group_by(y_true_unnorm) %>%
 				mutate(
 							 y_pred_agg = mean(y_pred),
 							 y_pred_unnorm_agg = mean(y_pred_unnorm),
+							 res_agg = mean(res),
+							 res_unnorm_agg = mean(res_unnorm)
 				)
 
 y_true = test_dataset$y %>% as_array()
@@ -350,29 +354,39 @@ test_result <- data.frame(
 										 y_true = y_true,
 										 y_true_unnorm = y_true_unnorm,
 										 y_pred_test = y_pred_test,
-										 y_pred_test_unnorm = y_pred_test_unnorm
+										 y_pred_test_unnorm = y_pred_test_unnorm,
+										 res = y_true - y_pred_test,
+										 res_unnorm = y_true_unnorm - y_pred_test_unnorm
 										 ) %>%				
 				group_by(y_true_unnorm) %>%
 				mutate(
 							 y_pred_agg = mean(y_pred_test),
 							 y_pred_unnorm_agg = mean(y_pred_test_unnorm),
+							 res_agg = mean(res),
+							 res_unnorm_agg = mean(res_unnorm)
 				)
+```
+
+```{r}
+print("Average Mean Percentage Absolute Error (Validation): ")
+print(mean(abs(val_result$y_true_unnorm - val_result$y_pred_unnorm)))
+print("Average Mean Percentage Absolute Error (Testing): ")
+print(mean(abs(test_result$y_true_unnorm - test_result$y_pred_test_unnorm)))
 ```
 
 ```{r}
 val_plot <- ggplot(
 			 data = val_result,
 			 mapping = aes(x = y_true_unnorm)) +
-geom_point(mapping = aes(y = y_pred_unnorm), color = "#a8ddb5") +
-geom_line(mapping = aes(y = y_pred_unnorm_agg), color = "#fdbb84") +
+geom_point(mapping = aes(y = y_true_unnorm - y_pred_unnorm), color = "#a8ddb5") +
+geom_line(mapping = aes(y = res_unnorm_agg), color = "#fdbb84") +
 labs(title="Residuals plot - validation set", x = "Groundtruth", y = "Residuals")
-ggplotly(val_plot)
 
 test_plot <- ggplot(
 			 data = test_result,
 			 mapping = aes(x = y_true_unnorm)) +
-geom_point(mapping = aes(y = y_pred_test_unnorm), color = "#a8ddb5") +
-geom_line(mapping = aes(y = y_pred_unnorm_agg), color = "#fdbb84") +
+geom_point(mapping = aes(y = y_true_unnorm - y_pred_test_unnorm), color = "#a8ddb5") +
+geom_line(mapping = aes(y = res_unnorm_agg), color = "#fdbb84") +
 labs(title="Residuals plot - testing set", x = "Groundtruth", y = "Residuals")
 
 ggplotly(val_plot)
