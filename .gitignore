@@ -39,3 +39,10 @@ _book/
 Thumbs.db
 *.tmp
 
+
+# Ignore Quarto + knitr cache
+*_cache/
+*/_cache/
+**/*_cache/
+*.RData
+*.rds

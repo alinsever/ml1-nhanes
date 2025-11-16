@@ -1,0 +1,216 @@
+---
+title: "Predicting Obesity using Support Vector Machines"
+format: html
+
+toc: TRUE
+editor: source
+---
+
+
+```{r}
+#| label: cache
+#| echo: false
+
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+
+
+```{r}
+#| label: setup
+#| include: false
+library(tidyverse)
+library(caret)
+library(e1071)
+set.seed(123)
+
+```
+
+# Introduction
+
+Obesity has become one of the most pressing public health challenges worldwide. It is associated with increased risk of cardiovascular disease, type 2 diabetes, and several other chronic conditions, and therefore places a substantial burden on health systems and societies. Because obesity is influenced by a complex interplay of demographic, behavioural, and clinical factors.
+
+The aim of this project is to build and evaluate SVM classification models for predicting obesity among NHANES participants. For this purpose, obesity is defined as BMI ≥ 30 kg/m², and the task is framed as a binary classification problem (obese vs. not obese). The predictors include a subset of NHANES variables such as age, sex, race/ethnicity, education, smoking status, physical activity, and blood pressure measures.
+
+Two SVM variants are considered: a linear SVM and a non-linear SVM with radial basis function (RBF) kernel. Model performance is evaluated using cross-validation on a training set and then assessed on an independent test set.
+
+This chapter has three main objectives:
+
+-  First, to investigate whether SVMs can achieve good predictive performance for obesity using routinely collected survey variables.
+- Second, to compare the performance of a linear SVM and an RBF SVM and discuss under which conditions the added flexibility of a non-linear kernel is beneficial.
+- Third, to relate these machine learning results back to the earlier regression analysis, discussing the trade-offs between interpretability and predictive accuracy when moving from classical models to more complex algorithms.
+
+# Data Cleaning and Preparation
+
+This project builds on the same cleaned NHANES dataset used in the earlier linear regression analysis to ensure consistency and comparability across modelling approaches.
+
+For the SVM analysis, one additional step was required: transforming BMI, originally a continuous variable, into a binary classification outcome. Obesity was defined as BMI ≥ 30 kg/m², and a new factor variable with two levels (“obese” and “not obese”) was created based on this threshold. All other predictor variables remained unchanged from the previous project.
+
+No manual standardization or dummy-variable creation was performed at the preprocessing stage. Instead, these steps were handled automatically during model training through caret, which centers and scales numeric predictors and encodes factor variables as needed for SVM algorithms.
+
+This workflow produced an analysis-ready dataset suitable for training both linear and non-linear SVM classification models.
+
+
+
+```{r}
+#| label: load data _ deal with NA
+#| echo: false
+#| warning: false
+
+#?NHANES
+
+# selecting only the variables for BMI
+
+nh_raw1 <- readRDS("../nhanes.rds")
+
+nh_raw <- nh_raw1 %>% 
+  filter(Age >= 18) %>%
+  select(
+    BMI,                  # response
+    Age,
+    Race1,
+    Gender,
+    Education,
+    HHIncomeMid,
+    PhysActive,
+    SleepHrsNight,
+    AlcoholDay,
+    SmokeNow,
+    BPSysAve              # keep BP; TotChol removed
+  ) %>%
+  mutate(
+    # factor setup (treatment contrasts; readable refs)
+    Gender     = factor(Gender, levels = c("female","male")),
+    PhysActive = factor(PhysActive, levels = c("No","Yes")),
+    Race1      = fct_infreq(factor(Race1)),   # most common level becomes reference
+    Education  = factor(Education),
+    SmokeNow   = factor(SmokeNow, levels = c("No","Yes")),
+    log_income = log(HHIncomeMid)             # safe: HHIncomeMid min ~ 2500
+  )
+
+nh_cc <- nh_raw %>% drop_na()
+
+n0   <- nrow(nh_raw)
+n_cc <- nrow(nh_cc)
+retention_pct <- round(100 * n_cc / n0, 1)
+
+#retention_pct
+
+nh_cc <- nh_cc %>%
+  mutate(
+    obese = if_else(BMI >= 30, "obese", "not_obese"),
+    obese = factor(obese, levels = c("obese", "not_obese"))
+  )
+
+nhanes_svm <- nh_cc
+
+```
+
+# Modelling Framework
+
+An SVM is a supervised machine learning method that identifies the decision boundary which best separates classes in a feature space. For linearly separable data, it finds the hyperplane with the maximum margin between classes. For more complex, non-linear relationships, SVMs can project the data into a higher-dimensional space using kernel functions. This study evaluates two commonly used SVM variants:
+
+- Linear SVM - assumes a linear decision boundary.
+- RBF (Radial Basis Function) SVM - models non-linear separation through a Gaussian kernel, allowing flexible boundaries.
+
+Using both models enables a comparison between a simple, interpretable classifier and a more flexible, non-linear alternative.
+
+## Outcome Variable
+
+The prediction task is framed as a binary classification problem. Body Mass Index (BMI) was converted into a categorical variable:
+
+- “obese” for BMI ≥ 30 kg/m²
+- “not_obese” otherwise
+
+This aligns with standard clinical definitions and enables direct classification using SVM algorithms.
+
+## Predictor Variables
+
+The predictors used in this analysis are the same cleaned variables from the linear regression project:
+
+- Demographic: Age, Gender, Race/Ethnicity, Education
+- Socioeconomic: Log-transformed household income
+- Lifestyle: Physical activity, smoking status, sleep hours, alcohol consumption
+- Clinical: Average systolic blood pressure
+
+All predictors were selected based on theoretical relevance and completeness in the cleaned dataset.
+
+## Data Partitioning
+```{r}
+set.seed(123)
+idx <- createDataPartition(nhanes_svm$obese, p = 0.8, list = FALSE)
+
+train <- nhanes_svm[idx, ]
+test  <- nhanes_svm[-idx, ]
+
+```
+To fairly assess model performance, the dataset was split into:
+
+- Training set: 80% of the data
+- Testing set: 20% of the data
+
+The split was stratified by obesity status to preserve class proportions in both sets
+
+```{r}
+
+ctrl <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 3,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary
+)
+
+# Ensure obese = positive class
+train$obese <- relevel(train$obese, ref = "obese")
+test$obese  <- relevel(test$obese, ref = "obese")
+
+```
+
+## Train Linear SVM
+
+```{r}
+
+
+svm_linear <- train(
+  obese ~ Age + Race1 + Gender + Education + log_income +
+    PhysActive + SleepHrsNight + AlcoholDay + SmokeNow + BPSysAve,
+  data = train,
+  method = "svmLinear",
+  trControl = ctrl,
+  preProcess = c("center", "scale"),
+  metric = "ROC",
+  tuneLength = 5
+)
+
+svm_linear
+plot(svm_linear)
+
+```
+
+## Linear SVM performance
+
+```{r}
+pred_linear <- predict(svm_linear, newdata = test)
+conf_linear <- confusionMatrix(pred_linear, test$obese)
+conf_linear
+
+```
+
+## Preprocessing for SVM
+
+SVMs are sensitive to the scale of input features and require numerical stability. Therefore:
+
+- All numeric predictors were centered and scaled during model training.
+- Categorical predictors were automatically converted into dummy variables by the modelling framework.
+
+These steps were performed using the caret package’s internal preprocessing pipeline, ensuring consistency across both SVM models.
+
+## Hyperparameter Tuning
+
+Both SVM models were trained using 10-fold cross-validation repeated three times, a robust method that improves reliability of performance estimates.
+
+- Linear SVM: The cost parameter C was tuned over a default grid to balance margin width and misclassification.
+- RBF SVM: Both C and the kernel width parameter σ (sigma) were tuned simultaneously, allowing exploration of different levels of model flexibility.
+
+Model selection was based on the cross-validated area under the ROC curve (AUC) to prioritise discrimination ability.

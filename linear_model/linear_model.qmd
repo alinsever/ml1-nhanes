@@ -150,7 +150,7 @@ nhanes_lm <- nh_cc
 
 We included only adults (≥ 18 years). BMI in children is interpreted with age- and sex-specific percentiles, so combining adults and minors would yield non-comparable BMI categories and biased estimates. We created log_income = log(HHIncomeMid). We then used a complete-case dataset for baseline modeling (all variables observed), retaining `r retention_pct`% of the adult sample.
 
-AlcoholDay/SmokeNow are driving most most of the loss loss
+AlcoholDay/SmokeNow are driving most most of the loss.
 
 ```{r}
 #| label: missing_value_table
