@@ -1,21 +1,27 @@
 ---
-title: "Binomial GLM and GAM"
+title: "Binomial GLM"
 format: 
   html:
     toc: true
     toc-depth: 4
+    code-fold: true
+    code-fold-show: false
+    code-summary: "Show/Hide Code"
   
 ---
 
 ```{r}
 #| label: "libraries"
+#| warning: false
 #| message: false
 
 library(tidyverse)
+library(patchwork)
 library(NHANES)
 library(car)
 library(pROC)
 library(mgcv)
+library(here)
 
 ```
 
@@ -51,12 +57,14 @@ str(nhanes_sub)
 
 ```
 
-## Binomial models
+## Generalized Linear Model (family: Binomial)
 
 ### Make outcome variable Depressed (three levels) binary
 
 ```{r}
 #| label: "Depressed binomial"
+#| warning: false
+#| message: false
 
 summary(nhanes_sub$Depressed)
 
@@ -79,66 +87,103 @@ table(nhanes_sub$Depressed, nhanes_sub$Depressed_bin, useNA = "ifany")
 
 ```{r}
 #| label: "Depressed_bin Visuals"
+#| warning: false
+#| message: false
+#| fig-height: 3
+#| fig-width: 6
 
-# Age vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = Age)) +
-  geom_boxplot()
+p_sleep_hours <- ggplot(
+  filter(nhanes_sub, !is.na(Depressed_bin)),
+  aes(x = Depressed_bin, y = SleepHrsNight)
+) +
+  geom_boxplot() +
+  labs(title = "Sleep Hours vs Depression",
+       x = "Depressive Symptoms", y = "Sleep Hours")
 
-# SleepHrsNight vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = SleepHrsNight)) +
-  geom_boxplot()
-
-# Gender vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Gender, fill = Depressed_bin)) +
-  geom_bar(position = "fill")
-
-# PhysActive vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = PhysActive, fill = Depressed_bin)) +
-  geom_bar(position = "fill")
-
-# MaritalStatus vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = MaritalStatus, fill = Depressed_bin)) +
+p_sleep_trouble <- ggplot(
+  filter(nhanes_sub, !is.na(Depressed_bin)),
+  aes(x = SleepTrouble, fill = Depressed_bin)
+) +
   geom_bar(position = "fill") +
-  theme(axis.text.x = element_text(angle=45, hjust=1))
+  labs(title = "Sleep Trouble vs Depression",
+       x = "Sleep Trouble", y = "Proportion") +
+  scale_y_continuous(labels = scales::percent_format())
 
-# PhysActive nach MaritalStatus
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
-       aes(x = PhysActive, fill = Depressed_bin)) +
+p_sleep_hours + p_sleep_trouble
+
+
+p_age <- ggplot(
+  filter(nhanes_sub, !is.na(Depressed_bin)),
+  aes(x = Depressed_bin, y = Age)
+) +
+  geom_boxplot() +
+  labs(title = "Age vs Depression",
+       x = "Depressive Symptoms", y = "Age")
+
+p_poverty <- ggplot(
+  filter(nhanes_sub, !is.na(Depressed_bin)),
+  aes(x = Depressed_bin, y = Poverty)
+) +
+  geom_boxplot() +
+  labs(title = "Poverty Index vs Depression",
+       x = "Depressive Symptoms", y = "Poverty Index")
+
+p_age + p_poverty
+
+
+p_health <- ggplot(
+  filter(nhanes_sub, !is.na(Depressed_bin)),
+  aes(x = HealthGen, fill = Depressed_bin)
+) +
   geom_bar(position = "fill") +
-  facet_wrap(~ MaritalStatus)
+  labs(title = "General Health vs Depression",
+       x = "General Health", y = "Proportion") +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) +
+  scale_y_continuous(labels = scales::percent_format())
 
-# BMI vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = BMI)) +
-  geom_boxplot()
+p_phys <- ggplot(
+  filter(nhanes_sub, !is.na(Depressed_bin)),
+  aes(x = PhysActive, fill = Depressed_bin)
+) +
+  geom_bar(position = "fill") +
+  labs(title = "Physical Activity vs Depression",
+       x = "Physical Activity", y = "Proportion")
 
-# Poverty vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = Poverty)) +
-  geom_boxplot()
+p_health + p_phys
 
-# HealthGen vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = HealthGen, fill = Depressed_bin)) +
-  geom_bar(position = "fill")
+# # Gender vs Depressed
+# ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Gender, fill = Depressed_bin)) +
+#   geom_bar(position = "fill")
 
-# SleepTrouble vs Depressed
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = SleepTrouble, fill = Depressed_bin)) +
-  geom_bar(position = "fill")
+# # MaritalStatus vs Depressed
+# ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = MaritalStatus, fill = Depressed_bin)) +
+#   geom_bar(position = "fill") +
+#   theme(axis.text.x = element_text(angle=45, hjust=1))
+
+# # PhysActive nach MaritalStatus
+# ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
+#        aes(x = PhysActive, fill = Depressed_bin)) +
+#   geom_bar(position = "fill") +
+#   facet_wrap(~ MaritalStatus)
+
+# # BMI vs Depressed
+# ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = BMI)) +
+#   geom_boxplot()
 
 # library(ggmosaic)
 # ggplot(filter(nhanes_sub, !is.na(Depressed_bin))) +
 #  geom_mosaic(aes(x = product(Gender, MaritalStatus), fill = Depressed_bin)) +
 #  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# SleepTrouble nach Gender
-ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
-       aes(x = SleepTrouble, fill = Depressed_bin)) +
-  geom_bar(position = "fill") +
-  facet_wrap(~ Gender)
+# # SleepTrouble nach Gender
+# ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
+#        aes(x = SleepTrouble, fill = Depressed_bin)) +
+#   geom_bar(position = "fill") +
+#   facet_wrap(~ Gender)
 
 ```
 
-### Generalized Linear Model (family: Binomial)
-
-#### First model (selection of variables)
+### Selection of variables
 
 Previous research has shown that depression is often associated with demographic, socioeconomic, social, health, and lifestyle factors. Based on these findings and after visual inspection of the graphs above, the following 9 variables are included in the first model:
 
@@ -150,27 +195,16 @@ Previous research has shown that depression is often associated with demographic
 
 These choices are supported by findings in NHANES-based studies, where factors such as poverty, marital status, physical activity, sleep problems, BMI, and general health perception were among the strongest predictors of depression (see e.g. Zhang et al., *BMC Medical Informatics and Decision Making*, 2025).
 
+
+### Handling of missings
+
 ```{r}
-#| label: "GLM_Binomial_1"
+#| label: "Missings"
+#| warning: false
+#| message: false
 
 Depressed_data <- nhanes_sub %>%
   filter(!is.na(Depressed_bin))
-
-glm_depressed_1 <- glm(Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
-                   HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
-                   data = Depressed_data,
-                   family = binomial)
-summary(glm_depressed_1)
-
-
-```
-
-#### Handling of missings
-
-703 observation were removed as **missing**. In which variable are they missing?
-
-```{r}
-#| label: "GLM_Binomial_missings"
 
 vars_model <- c("Depressed_bin", "Age", "Gender", "Poverty", "MaritalStatus", "BMI", "HealthGen", "SleepHrsNight", "SleepTrouble", "PhysActive")
 
@@ -180,14 +214,14 @@ Depressed_data %>%
   pivot_longer(cols = everything(),
                       names_to = "Variable", values_to = "Missing_Count")
 
-
-
 ```
 
 It is feasible to **replace missings** in `Poverty`, `BMI` and `SleepHrsNight` by the **median**. For `MaritalStatus` I don't see a convincing approach to replace missings.
 
 ```{r}
 #| label: "Impute_Missings"
+#| warning: false
+#| message: false
 
 Depressed_data_imp <- Depressed_data %>%
   mutate(
@@ -195,28 +229,32 @@ Depressed_data_imp <- Depressed_data %>%
     BMI = ifelse(is.na(BMI), median(BMI, na.rm = TRUE), BMI),
     SleepHrsNight = ifelse(is.na(SleepHrsNight), median(SleepHrsNight, na.rm = TRUE), SleepHrsNight),)
 
-Depressed_data_imp %>%
-  select(all_of(vars_model)) %>%
-  summarise(across(everything(), ~ sum(is.na(.)))) %>%
-  pivot_longer(cols = everything(),
-                      names_to = "Variable", values_to = "Missing_Count")
+# Depressed_data_imp %>%
+#   select(all_of(vars_model)) %>%
+#   summarise(across(everything(), ~ sum(is.na(.)))) %>%
+#   pivot_longer(cols = everything(),
+#                       names_to = "Variable", values_to = "Missing_Count")
+
+saveRDS(Depressed_data_imp, "depressed_imp.rds")
 
 ```
 
-I will continue the modelling with this dataset where only `MaritalStatus` is missing for 236 cases.
+I will continue the modelling with the imputed dataset where only `MaritalStatus` is missing for 236 cases.
+
+### Model 1: Full model
 
 ```{r}
-#| label: "GLM_Binomial_1b"
+#| label: "GLM_Binomial_1"
+#| warning: false
+#| message: false
 
-glm_depressed_1b <- glm(Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
+glm_depressed_1 <- glm(Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
                    HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
                    data = Depressed_data_imp,
                    family = binomial)
-summary(glm_depressed_1b)
+summary(glm_depressed_1)
 
 ```
-
-#### First interpretation
 
 There is **strong evidence against the null hypothesis** that `Gender`, `Poverty`, `MaritalStatus`, `HealthGen`, `SleepHrsNight`, `SleepTrouble` and `PhysActivitie` have no effect. Whereas `Age` and `BMI` show **no significant effect** on Depressed_bin.
 
@@ -225,19 +263,22 @@ There is **strong evidence against the null hypothesis** that `Gender`, `Poverty
 I am concerned about potential collinearity between the predictors, as this could hinder a proper interpretation of their individual effects. Therefore, I checked the model for signs of collinearity.
 
 ```{r}
-#| label: "GLM_Binomial_1b_Collinear"
+#| label: "GLM_Binomial_1_Collinear"
+#| warning: false
+#| message: false
 
-vif(glm_depressed_1b)   # auf dein Modell anwenden
-
+vif(glm_depressed_1)   # auf dein Modell anwenden
 
 ```
 
 All VIF values are \<2, meaning the model does not suffer from collinearity.
 
-#### Second model (Age, BMI removed)
+### Model 2: Removing non-significant predictors
 
 ```{r}
 #| label: "GLM_Binomial_2"
+#| warning: false
+#| message: false
 
 glm_depressed_2 <- glm(Depressed_bin ~ Gender + Poverty + MaritalStatus + HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
                        data = Depressed_data_imp,
@@ -250,19 +291,23 @@ Do all variables **contribute significantly** to the quality of the model?
 
 ```{r}
 #| label: "Glm_depressed_2_drop1"
+#| warning: false
+#| message: false
 
 drop1(glm_depressed_2, test = "Chisq")
 
 ```
 
-As expected, all 7 variables are highly relevant for the quality of the model
+As expected, all seven predictors substantially contribute to the model fit.
 
-#### Third model: Conceptual collinearity
+### Model 3: Removing conceptually collinear predictor (HealthGen)
 
-I think that the variable **`HealthGen`** is **conceptually collinear** with `Depressed_bin`, as self-rated general health strongly overlaps with depressive symptoms. Since the focus of this analysis is on understanding underlying relationships rather than maximizing predictive accuracy, **`HealthGen`** will be excluded from the final model.
+I exclude HealthGen in Model 3 because it is conceptually very close to Depressed_bin: self-rated general health overlaps strongly with depressive symptoms. Since the goal here is to understand underlying relationships rather than to maximize predictive accuracy, HealthGen is removed from the final model.
 
 ```{r}
 #| label: "GLM_Binomial_3"
+#| warning: false
+#| message: false
 
 glm_depressed_3 <- glm(Depressed_bin ~ Gender + Poverty + MaritalStatus + SleepHrsNight + SleepTrouble + PhysActive,
                        data = Depressed_data_imp,
@@ -271,15 +316,14 @@ summary(glm_depressed_3)
 
 ```
 
-#### Comparison 2nd and 3rd model
-
-The 2nd model has Residual deviance of 5948.8, the 3rd of 6095.2. Therefore **both differ clearly from the Null deviance** of 6688.1. The 2nd model including `HealthGen` is slightly better, also while comparing AIC (5978.8 vs. 6117.2). However, **I prefer the third model**, as `HealthGen` is not causally independent from `Depressed_bin` and may reflect overlapping constructs rather than a distinct explanatory factor.
-
-To evaluate the discriminatory power of the logistic regression model (3rd), a **ROC (Receiver Operating Characteristic)** analysis is performed using the pROC package.
+To evaluate the discriminatory power of this logistic regression model, a **ROC (Receiver Operating Characteristic)** analysis is performed using the pROC package.
 
 ```{r}
 #| label: "GLM_Binomial_3_ROC"
+#| warning: false
 #| message: false
+#| fig-height: 3
+#| fig-width: 6
 
 roc(glm_depressed_3$y, fitted(glm_depressed_3))
 
@@ -287,217 +331,117 @@ roc(glm_depressed_3$y, fitted(glm_depressed_3))
 roc_obj <- roc(glm_depressed_3$y, fitted(glm_depressed_3))
 plot(roc_obj)
 
-# Find optimal threshold (e.g. Youden-Index)
-coords(roc_obj, "best", ret = "threshold")
-
 ```
-
-The resulting **AUC of 0.71** indicates that the model distinguishes **reasonably well** between depressed and non-depressed individuals. While not exceptionally high, this level of accuracy is typical for psycho-social data and supports the model’s usefulness for explanatory purposes.
-We come back to the optimal threshold at the very end of this chapter when having a closer look at the confusion matrices.
-
-### Generalized Additive Model (family: Binomial)
-
-Taking non-linear effects into account could improve the model. Therefore I check first visually if there might be non-linear relations between `Depressed_bin` and the variables `Poverty` and `SleepHrsNight`.
-
-#### Exploratory plots
-
-```{r}
-#| label: "Plot_nonlinear_effects"
-#| message: false
-#| warning: false
-
-ggplot(Depressed_data_imp, aes(x = Poverty, y = as.numeric(Depressed_bin) - 1)) +
-  geom_jitter(height = 0.05, alpha = 0.3, color = "gray60") +
-  geom_smooth(method = "glm", method.args = list(family = "binomial"),
-              color = "blue", se = FALSE) +
-  geom_smooth(method = "loess", color = "red", se = FALSE) +
-  labs(
-    y = "Probability of Depression",
-    title = "Poverty vs. Probability of Depression",
-    subtitle = "Blue = logistic fit (GLM), Red = flexible smoother (LOESS)"
-  )
-
-ggplot(Depressed_data_imp, aes(x = SleepHrsNight, y = as.numeric(Depressed_bin) - 1)) +
-  geom_jitter(height = 0.05, alpha = 0.3, color = "gray60") +
-  geom_smooth(method = "glm", method.args = list(family = "binomial"),
-              color = "blue", se = FALSE) +
-  geom_smooth(method = "loess", color = "red", se = FALSE) +
-  labs(
-    y = "Probability of Depression",
-    title = "Sleep hours per night vs. Probability of Depression",
-    subtitle = "Blue = logistic fit (GLM), Red = flexible smoother (LOESS)"
-  )
-
-
-```
-
-The exploratory plots suggest that the relationship between `Poverty` and depression is not strictly linear, while `SleepHrsNight` shows a clear non-linear, U-shaped association with depression probability.
-
-#### Adding smooth splines to the model
-
-To capture these **non-linear patterns** more accurately, a Generalized Additive Model (**GAM**) with **smooth spline terms** for `Poverty` and `SleepHrsNight` is being estimated using the `mgcv` package.
-
-```{r}
-#| label: "GAM_Binomial_1"
-#| message: false
-
-gam_depressed_1 <- gam(Depressed_bin ~ s(Poverty) + s(SleepHrsNight) +
-                       Gender + MaritalStatus + SleepTrouble + PhysActive,
-                     data = Depressed_data_imp, family = binomial)
-summary(gam_depressed_1)
-
-```
-
-The GAM results confirm that both `Poverty` and `SleepHrsNight` exhibit **significant non-linear effects** on depression probability, as indicated by high estimated degrees of freedom (**edf \> 6**) and p-values \< 0.001.
-
-#### Final interpretation of the GAM model
-
-We have strong evidence against the null hypothesis that several factors have no effect on depression. Being **male** (Estimate = –0.31, p \< 0.001), being **married** (–0.67, p \< 0.001), and being **physically active** (–0.38, p \< 0.001) are all associated with lower odds of depression, while experiencing **sleep trouble** (+0.85, p \< 0.001) is associated with substantially higher odds. Individuals who are **widowed** also show a significantly lower risk (–0.54, p \< 0.001) compared to the reference category.
-
-The smooth terms for **Poverty** (edf = 6.29, p \< 0.001) and **SleepHrsNight** (edf = 7.84, p \< 0.001) further indicate **significant non-linear effects** on depression probability. Overall, the model explains about **10% of the deviance**, suggesting that both socioeconomic and lifestyle factors meaningfully contribute to the likelihood of depression.
-
-### Measure of Fit
 
 #### ANOVA: comparing GLM and GAM models
 
 As a **preliminary check**, an analysis of deviance (ANOVA) is being conducted to test whether the GAM provides a statistically significant improvement over the simpler GLM.
 
 ```{r}
-#| label: "ANOVA_GLM_GAM"
+#| label: "ANOVA_model comparison"
+#| warning: false
 #| message: false
 
-anova(glm_depressed_3, gam_depressed_1, test = "Chisq")
+anova(glm_depressed_2, glm_depressed_3, test = "Chisq")
 
 ```
 
-The analysis of deviance confirmed that **the GAM significantly improved model fit** compared to the linear model (χ² = 69.10, df = 12.14, p \< 0.001), indicating that the inclusion of non-linear smooth terms for `Poverty` and `SleepHrsNight` provides a statistically better representation of the data.
+The analysis of deviance shows a highly significant increase in deviance when HealthGen is removed from the model (ΔDeviance = 146.46, p < 0.001), indicating that HealthGen provides substantial explanatory power. However, its strong conceptual overlap with depressive symptoms suggests caution when interpreting it as an independent predictor.
 
 #### Akaike Information Criterion (AIC)
 
 The AIC is a commonly used measure of model fit that balances model accuracy and complexity. It is chosen because it allows a direct **comparison between models with different numbers of parameters**, penalizing excessive complexity while rewarding better data fit.
 
 ```{r}
-#| label: "AIC_GLM_GAM"
+#| label: "AIC_GLM_model comparison"
+#| warning: false
 #| message: false
 
-AIC(glm_depressed_3, gam_depressed_1)
+AIC(glm_depressed_3, glm_depressed_2)
 
 ```
 
-The **GAM achieved a lower AIC** (6072.4) compared to the linear GLM (6117.2), indicating a **better overall model fit** even after accounting for the increased model complexity.
+The AIC comparison shows that the model including HealthGen (AIC = 5978.8) **outperforms the simpler model** without it (AIC = 6117.2). Because lower AIC values indicate a better balance of fit and complexity, this confirms that HealthGen provides substantial additional explanatory value.
 
 ### Confusion matrix
 
-Now we directly check how good the prediction of the model are. Therefore we assign predictions \> 0.5 as 1 and \< 0.5 as 0. First we define a function providing accuracy, sensitivity, specifity and precision.
+We next assess the predictive performance of the models using confusion matrices.
 
 ```{r}
-#| label: "Confusion_Matrix_GLM"
+#| label: "Evaluate models function"
+#| echo: false
+#| warning: false
+#| message: false
 
-# Function for confusion matrix
 eval_model <- function(model, threshold = 0.5) {
-  # predicted probabilities
   pred_prob <- fitted(model)
-  
-  # classification based on predicted probabilities
   pred_class <- ifelse(pred_prob > threshold, "yes", "no")
   pred_class <- factor(pred_class, levels = c("no", "yes"))
-  
-  # real values
-  actual <- model$y
-  actual <- factor(ifelse(actual == 1, "yes", "no"), levels = c("no", "yes"))
-  
-  # Confusion Matrix
+
+  actual <- factor(ifelse(model$y == 1, "yes", "no"), levels = c("no", "yes"))
+
   cm <- table(Predicted = pred_class, Actual = actual)
-  
-  # calculate the measures
-  accuracy <- sum(diag(cm)) / sum(cm)
-  sensitivity <- cm[2,2] / sum(cm[,2])  # True Positive Rate ('Recall')
-  specificity <- cm[1,1] / sum(cm[,1])  # True Negative Rate
-  precision <- cm[2,2] / sum(cm[2,])    # Positive Predictive Value
-  
-  # Output
+
   list(
     confusion_matrix = cm,
-    accuracy = accuracy,
-    sensitivity = sensitivity,
-    specificity = specificity,
-    precision = precision
+    accuracy = sum(diag(cm)) / sum(cm),
+    sensitivity = cm[2,2] / sum(cm[,2]),
+    specificity = cm[1,1] / sum(cm[,1]),
+    precision = cm[2,2] / sum(cm[2,])
   )
 }
-
 ```
 
 Then we use the function to calculate these measures for the two models.
 
 ```{r}
 #| label: "Evaluate models"
+#| echo: false
+#| warning: false
+#| message: false
 
-# Evaluate GLM Model 3
-cat("=== GLM Model 3 (without Age, BMI, HealthGen) ===\n")
-eval_3 <- eval_model(glm_depressed_3)
-print(eval_3$confusion_matrix)
-cat("\nAccuracy:", round(eval_3$accuracy, 3))
-cat("\nSensitivity (Recall):", round(eval_3$sensitivity, 3))
-cat("\nSpecificity:", round(eval_3$specificity, 3))
-cat("\nPrecision:", round(eval_3$precision, 3))
+show_eval <- function(model, name) {
+  cat("###", name, "\n")
+  out <- eval_model(model)
+  print(out$confusion_matrix)
+  cat(
+    sprintf("\nAccuracy: %.3f\nSensitivity: %.3f\nSpecificity: %.3f\nPrecision: %.3f\n",
+            out$accuracy, out$sensitivity, out$specificity, out$precision)
+  )
+}
 
-# Evaluate GAM Model 1
-cat("\n\n=== GAM Model 1 (with Age and BMI) ===\n")
-eval_1 <- eval_model(gam_depressed_1)
-print(eval_1$confusion_matrix)
-cat("\nAccuracy:", round(eval_1$accuracy, 3))
-cat("\nSensitivity (Recall):", round(eval_1$sensitivity, 3))
-cat("\nSpecificity:", round(eval_1$specificity, 3))
-cat("\nPrecision:", round(eval_1$precision, 3))
+show_eval(glm_depressed_2, "GLM Model 2 (without Age and BMI)")
+cat("\n")
+show_eval(glm_depressed_3, "GLM Model 3 (without Age, BMI, HealthGen)")
 
 ```
 
-#### Interpretation: Confusion Matrix Results (GLM vs GAM)
+#### Results of Confusion Matrices
 
-Both models show **high accuracy** (\~79%), but this is misleading due to the **imbalanced dataset** (most observations are non-depressed).
+Comparing the two GLM models shows that removing HealthGen (Model 3) leads to a clear drop in predictive performance. Model 2 achieves slightly higher accuracy (0.792 vs. 0.786), notably better sensitivity (0.151 vs. 0.094), and higher precision (0.553 vs. 0.502).
+This indicates that HealthGen substantially improves the model’s ability to correctly identify depressed individuals, even though it may not be conceptually independent from the outcome.
 
-**Key problem**: Both models are **extremely conservative** at the default 0.5 threshold: - Very low **sensitivity** (9-12%) – they miss most depressed cases - Very high **specificity** (\~97%) – they rarely misclassify non-depressed individuals - Moderate **precision** (50-54%)
+#### Optimal classification threshold
 
-The **GAM performs slightly better** than the GLM, with higher sensitivity (11.8% vs. 9.4%) and precision (54% vs. 50%), suggesting that modeling non-linear effects provides marginal improvement in identifying depressed individuals.
-
-We could **lower the classification threshold** (e.g., to 0.3) to improve sensitivity, accepting a trade-off with lower specificity. This is more appropriate for screening purposes.
+Because the default threshold of 0.5 yielded very low sensitivity, adjusting the classification threshold can be reasonable. Lowering the threshold typically increases the model’s ability to identify depressed individuals, which may be more important depending on the research goal. Here the optimal threshold is determined based on the ROC curve for **model 3**.
 
 ```{r}
-#| label: "Evaluate models with lower threshold"
+#| label: "Optimal_Threshold_GLM"
+#| warning: false
+#| message: false
 
-# Evaluate GLM Model 3
-cat("=== GLM Model 3 (threshold = 0.3) ===\n")
-eval_3 <- eval_model(glm_depressed_3, threshold = 0.3)
-print(eval_3$confusion_matrix)
-cat("\nAccuracy:", round(eval_3$accuracy, 3))
-cat("\nSensitivity (Recall):", round(eval_3$sensitivity, 3))
-cat("\nSpecificity:", round(eval_3$specificity, 3))
-cat("\nPrecision:", round(eval_3$precision, 3))
-
-# Evaluate GAM Model 1
-cat("\n\n=== GAM Model 1 (threshold = 0.3) ===\n")
-eval_1 <- eval_model(gam_depressed_1, threshold = 0.3)
-print(eval_1$confusion_matrix)
-cat("\nAccuracy:", round(eval_1$accuracy, 3))
-cat("\nSensitivity (Recall):", round(eval_1$sensitivity, 3))
-cat("\nSpecificity:", round(eval_1$specificity, 3))
-cat("\nPrecision:", round(eval_1$precision, 3))
-
+coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"))
 ```
 
-#### Interpretation: Threshold = 0.3
-
-Lowering the threshold to 0.3 substantially **improves detection of depressed individuals**: The GAM now identifies **43.5%** of depressed cases (vs. 11.8% at 0.5), while the GLM identifies **41.8%** (vs. 9.4%).
-
-The trade-off is **lower specificity** (~84%), meaning more false positives. However, this is often acceptable in mental health screening, where missing a depressed person is more problematic than a false alarm.
-
-**Precision** remains around **42%** – when depression is predicted, it's correct less than half the time. While this seems low, it's reasonable for an initial screening tool that would be followed by clinical assessment.
-
-**Conclusion**: With threshold = 0.3, both models are more balanced. The **GAM performs slightly better**, with higher sensitivity (43.5% vs. 41.8%), supporting the inclusion of non-linear effects for `Poverty` and `SleepHrsNight`.
-
+Based on the ROC analysis, the optimal classification threshold is approximately 0.22, which yields a substantially higher sensitivity (0.61) at a reasonable specificity level (0.69).
+This indicates that lowering the threshold from the default 0.5 dramatically improves the model’s ability to detect depressed individuals, which may be more appropriate given the imbalance in the outcome and the higher cost of false negatives.
 
 ### Note on Overdispersion
 
 Since the outcome variable `Depressed_bin` is **binary** (individual observations coded as 0/1), there is **no concern about overdispersion** in this analysis. Overdispersion is only relevant for **aggregated binomial data** (e.g., "15 successes out of 20 trials"), where the observed variance can exceed the variance assumed by the binomial model.
 
 In this case, each observation follows a **Bernoulli distribution** (a special case of the binomial distribution with n=1), where the variance is fixed at p(1-p) and cannot be overdispersed.
+
+### Final remark on model selection
+
+Model 2, which includes `HealthGen`, provides the best statistical fit and is preferable for prediction. Model 3, which excludes `HealthGen`, yields a less optimal fit but offers clearer interpretability of the other predictors. Therefore, **Model 2** is suited for predictive purposes, whereas **Model 3** is more appropriate for understanding how socioeconomic and lifestyle factors relate to depressive symptoms.
