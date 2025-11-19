@@ -7,13 +7,13 @@ format:
     code-fold: true
     code-fold-show: false
     code-summary: "Show/Hide Code"
-  
 ---
 
 ```{r}
 #| label: "libraries"
 #| warning: false
 #| message: false
+#| include: false
 
 library(tidyverse)
 library(patchwork)
@@ -59,6 +59,8 @@ str(nhanes_sub)
 
 ## Generalized Linear Model (family: Binomial)
 
+Mental health is a key public health concern, and NHANES provides rich data for examining factors linked to depressive symptoms. In this chapter, we use a binomial Generalized Linear Model (GLM) to investigate how demographic, socioeconomic, social, and lifestyle variables relate to depression. The GLM analysis also serves as a foundation for the more flexible modeling approach introduced in Chapter 4.
+
 ### Make outcome variable Depressed (three levels) binary
 
 ```{r}
@@ -66,7 +68,7 @@ str(nhanes_sub)
 #| warning: false
 #| message: false
 
-summary(nhanes_sub$Depressed)
+# summary(nhanes_sub$Depressed)
 
 nhanes_sub <- nhanes_sub %>%
   mutate(
@@ -79,7 +81,7 @@ nhanes_sub <- nhanes_sub %>%
   )
 
 # Check the recode
-table(nhanes_sub$Depressed, nhanes_sub$Depressed_bin, useNA = "ifany")
+table(nhanes_sub$Depressed_bin, useNA = "ifany")
 
 ```
 
@@ -195,13 +197,13 @@ Previous research has shown that depression is often associated with demographic
 
 These choices are supported by findings in NHANES-based studies, where factors such as poverty, marital status, physical activity, sleep problems, BMI, and general health perception were among the strongest predictors of depression (see e.g. Zhang et al., *BMC Medical Informatics and Decision Making*, 2025).
 
-
 ### Handling of missings
 
 ```{r}
 #| label: "Missings"
 #| warning: false
 #| message: false
+#| include: false
 
 Depressed_data <- nhanes_sub %>%
   filter(!is.na(Depressed_bin))
@@ -215,8 +217,6 @@ Depressed_data %>%
                       names_to = "Variable", values_to = "Missing_Count")
 
 ```
-
-It is feasible to **replace missings** in `Poverty`, `BMI` and `SleepHrsNight` by the **median**. For `MaritalStatus` I don't see a convincing approach to replace missings.
 
 ```{r}
 #| label: "Impute_Missings"
@@ -239,7 +239,7 @@ saveRDS(Depressed_data_imp, "depressed_imp.rds")
 
 ```
 
-I will continue the modelling with the imputed dataset where only `MaritalStatus` is missing for 236 cases.
+There were missing values in `Poverty` (443), `MaritalStatus` (236), `BMI` (51), and `SleepHrsNight` (13), while all other variables were complete. Missing values in `Poverty`, `BMI`, and `SleepHrsNight` were imputed using the median, whereas no suitable imputation strategy was identified for `MaritalStatus`.
 
 ### Model 1: Full model
 
@@ -252,7 +252,7 @@ glm_depressed_1 <- glm(Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + 
                    HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
                    data = Depressed_data_imp,
                    family = binomial)
-summary(glm_depressed_1)
+coef(summary(glm_depressed_1))
 
 ```
 
@@ -267,13 +267,17 @@ I am concerned about potential collinearity between the predictors, as this coul
 #| warning: false
 #| message: false
 
-vif(glm_depressed_1)   # auf dein Modell anwenden
+max(vif(glm_depressed_1)[ , "GVIF^(1/(2*Df))"])
 
 ```
 
 All VIF values are \<2, meaning the model does not suffer from collinearity.
 
 ### Model 2: Removing non-significant predictors
+
+<details>
+
+<summary>Show output</summary>
 
 ```{r}
 #| label: "GLM_Binomial_2"
@@ -283,26 +287,38 @@ All VIF values are \<2, meaning the model does not suffer from collinearity.
 glm_depressed_2 <- glm(Depressed_bin ~ Gender + Poverty + MaritalStatus + HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
                        data = Depressed_data_imp,
                        family = binomial)
-summary(glm_depressed_2)
+coef(summary(glm_depressed_2))
 
 ```
 
+</details>
+
 Do all variables **contribute significantly** to the quality of the model?
+
+<details>
+
+<summary>Show output</summary>
 
 ```{r}
 #| label: "Glm_depressed_2_drop1"
 #| warning: false
 #| message: false
 
-drop1(glm_depressed_2, test = "Chisq")
+drop1(glm_depressed_2, test = "Chisq")[ , "Pr(>Chi)", drop = FALSE]
 
 ```
 
-As expected, all seven predictors substantially contribute to the model fit.
+</details>
+
+All seven predictors showed significant χ² tests and thus contribute meaningfully to the model fit.
 
 ### Model 3: Removing conceptually collinear predictor (HealthGen)
 
-I exclude HealthGen in Model 3 because it is conceptually very close to Depressed_bin: self-rated general health overlaps strongly with depressive symptoms. Since the goal here is to understand underlying relationships rather than to maximize predictive accuracy, HealthGen is removed from the final model.
+`HealthGen` was removed in Model 3 because self-rated general health overlaps conceptually with depressive symptoms. Since the aim is interpretation rather than maximizing predictive accuracy, excluding `HealthGen` avoids this conceptual redundancy.
+
+<details>
+
+<summary>Show output</summary>
 
 ```{r}
 #| label: "GLM_Binomial_3"
@@ -312,9 +328,11 @@ I exclude HealthGen in Model 3 because it is conceptually very close to Depresse
 glm_depressed_3 <- glm(Depressed_bin ~ Gender + Poverty + MaritalStatus + SleepHrsNight + SleepTrouble + PhysActive,
                        data = Depressed_data_imp,
                        family = binomial)
-summary(glm_depressed_3)
+coef(summary(glm_depressed_3))
 
 ```
+
+</details>
 
 To evaluate the discriminatory power of this logistic regression model, a **ROC (Receiver Operating Characteristic)** analysis is performed using the pROC package.
 
@@ -342,11 +360,18 @@ As a **preliminary check**, an analysis of deviance (ANOVA) is being conducted t
 #| warning: false
 #| message: false
 
-anova(glm_depressed_2, glm_depressed_3, test = "Chisq")
+anova_res <- anova(glm_depressed_2, glm_depressed_3, test = "Chisq")
+
+delta_dev <- anova_res$Deviance[2]     # Modell 3 vs. Modell 2
+p_val     <- anova_res$`Pr(>Chi)`[2]   # p-Wert
+
+delta_dev
+p_val
+
 
 ```
 
-The analysis of deviance shows a highly significant increase in deviance when HealthGen is removed from the model (ΔDeviance = 146.46, p < 0.001), indicating that HealthGen provides substantial explanatory power. However, its strong conceptual overlap with depressive symptoms suggests caution when interpreting it as an independent predictor.
+Removing HealthGen worsened model fit substantially (ΔDeviance = 146.46, p \< 0.001), confirming its strong but conceptually overlapping contribution.
 
 #### Akaike Information Criterion (AIC)
 
@@ -361,7 +386,7 @@ AIC(glm_depressed_3, glm_depressed_2)
 
 ```
 
-The AIC comparison shows that the model including HealthGen (AIC = 5978.8) **outperforms the simpler model** without it (AIC = 6117.2). Because lower AIC values indicate a better balance of fit and complexity, this confirms that HealthGen provides substantial additional explanatory value.
+Model 2 (AIC = 5978.8) outperformed Model 3 (AIC = 6117.2), confirming the added explanatory value of `HealthGen`.
 
 ### Confusion matrix
 
@@ -383,7 +408,7 @@ eval_model <- function(model, threshold = 0.5) {
   cm <- table(Predicted = pred_class, Actual = actual)
 
   list(
-    confusion_matrix = cm,
+    # confusion_matrix = cm,
     accuracy = sum(diag(cm)) / sum(cm),
     sensitivity = cm[2,2] / sum(cm[,2]),
     specificity = cm[1,1] / sum(cm[,1]),
@@ -393,6 +418,10 @@ eval_model <- function(model, threshold = 0.5) {
 ```
 
 Then we use the function to calculate these measures for the two models.
+
+<details>
+
+<summary>Show output</summary>
 
 ```{r}
 #| label: "Evaluate models"
@@ -416,10 +445,11 @@ show_eval(glm_depressed_3, "GLM Model 3 (without Age, BMI, HealthGen)")
 
 ```
 
+</details>
+
 #### Results of Confusion Matrices
 
-Comparing the two GLM models shows that removing HealthGen (Model 3) leads to a clear drop in predictive performance. Model 2 achieves slightly higher accuracy (0.792 vs. 0.786), notably better sensitivity (0.151 vs. 0.094), and higher precision (0.553 vs. 0.502).
-This indicates that HealthGen substantially improves the model’s ability to correctly identify depressed individuals, even though it may not be conceptually independent from the outcome.
+Model 2 showed higher accuracy (0.79), sensitivity (0.15), and precision (0.55) than Model 3, confirming better predictive performance. This indicates that HealthGen substantially improves the model’s ability to correctly identify depressed individuals, even though it may not be conceptually independent from the outcome.
 
 #### Optimal classification threshold
 
@@ -433,14 +463,11 @@ Because the default threshold of 0.5 yielded very low sensitivity, adjusting the
 coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"))
 ```
 
-Based on the ROC analysis, the optimal classification threshold is approximately 0.22, which yields a substantially higher sensitivity (0.61) at a reasonable specificity level (0.69).
-This indicates that lowering the threshold from the default 0.5 dramatically improves the model’s ability to detect depressed individuals, which may be more appropriate given the imbalance in the outcome and the higher cost of false negatives.
+The ROC analysis suggests an optimal threshold of about 0.22, increasing sensitivity to 0.61 while maintaining reasonable specificity (0.69). This lower threshold substantially improves the detection of depressed individuals compared to the default 0.5.
 
 ### Note on Overdispersion
 
-Since the outcome variable `Depressed_bin` is **binary** (individual observations coded as 0/1), there is **no concern about overdispersion** in this analysis. Overdispersion is only relevant for **aggregated binomial data** (e.g., "15 successes out of 20 trials"), where the observed variance can exceed the variance assumed by the binomial model.
-
-In this case, each observation follows a **Bernoulli distribution** (a special case of the binomial distribution with n=1), where the variance is fixed at p(1-p) and cannot be overdispersed.
+Because `Depressed_bin` consists of individual Bernoulli observations (0/1), overdispersion is not an issue for this analysis.
 
 ### Final remark on model selection
 
