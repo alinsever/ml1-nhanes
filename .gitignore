@@ -19,7 +19,7 @@ _book/
 .httr-oauth
 
 # Output-Dateien
-*.html
+
 *.pdf
 *.docx
 *.pptx
