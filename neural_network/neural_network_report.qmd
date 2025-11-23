@@ -1,0 +1,387 @@
+---
+title: "Predictive Modeling of Daily Alcohol Consumption"
+subtitle: "Multi-Layer Perceptron Neural Network Analysis"
+format: 
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    page-layout: full
+    grid:
+      margin-width: 250px
+    theme: cosmo
+execute:
+  warning: false
+  message: false
+---
+
+# Executive Summary
+
+:::{.callout-note collapse=true title="Show key findings"}
+## Key Findings
+
+**Model Development:**
+
+- Transitioned from statistical inference (Poisson GLM) to predictive modeling (Neural Network)
+- Increased sample size from 2,318 to **4,435 observations** (+91%) by focusing on significant predictors only
+- Implemented deep architecture: 4 hidden layers with 150 units each
+
+**Prediction Performance:**
+
+- **Mean Absolute Error: ~2.14 drinks/day** on validation and test sets
+- Model generalizes well—no overfitting observed between validation and test performance
+- Error increases with consumption levels (data scarcity for heavy drinkers).
+
+**Model Comparison:**
+
+- Simple MLP (1 hidden layer): Poor performance, unable to capture patterns
+- Deep Sequential NN (4 hidden layers): Substantial improvement, reasonable accuracy
+- Best architecture: ReLU activation + ADAM optimizer + MSE loss function
+
+**Business Impact:** Model enables identification of individuals at risk for problematic consumption patterns, supporting targeted intervention strategies.
+:::
+
+# Background & Context
+
+## From Inference to Prediction
+
+The previous Poisson regression analysis identified significant predictors of alcohol consumption (gender, education, depression, age, poverty, sleep, blood pressure). While providing strong statistical inference, that model demonstrated poor predictive capability (MAE ≈ 60 drinks/day).
+
+Our objective is to build a neural network that accurately predicts daily alcohol consumption using the significant predictors identified, enabling proactive health interventions. Using the previously determined predictors enable achieves two important goal: 
+
+1. **Dimensionality reduction:** Fewer features reduce overfitting risk
+2. **Sample size maximization:** Fewer variables = fewer missing values = more complete observations (4,435 vs. 2,318)
+
+
+::: {.callout-note collapse=true title="Show data preprocessing"}
+```{r}
+library(gamlss.add)
+library(nnet)
+library(caret)
+library(ggplot2)
+library(here)
+library(dplyr)
+library(plotly)
+library(torch)
+library(luz)
+
+nhanes <- readRDS(here("nhanes.rds"))
+
+nhanes <- nhanes %>%
+  mutate(
+    Gender = as.factor(Gender),
+    AgeDecade = as.factor(AgeDecade),
+    Race1 = as.factor(Race1),
+    Education = as.factor(Education),
+    MaritalStatus = as.factor(MaritalStatus),
+    HHIncome = as.factor(HHIncome),
+    HealthGen = as.factor(HealthGen),
+    PhysActive = as.factor(PhysActive),
+    SleepTrouble = as.factor(SleepTrouble),
+    Alcohol12PlusYr = as.factor(Alcohol12PlusYr),
+    SmokeNow = as.factor(SmokeNow),
+    Smoke100 = as.factor(Smoke100),
+    LittleInterest = as.factor(LittleInterest),
+    Depressed = as.factor(Depressed)
+  )
+```
+
+# Data Preprocessing
+
+## One-Hot Encoding
+
+```{r}
+model_nhanes <- nhanes %>% 
+  dplyr::select(AlcoholDay, Education, Depressed, Gender, Age, Poverty, SleepHrsNight, BPSysAve) %>%
+  tidyr::drop_na()
+
+dummies <- caret::dummyVars(~., data = model_nhanes)
+onehot_nhanes <- predict(dummies, newdata=model_nhanes)
+```
+
+Categorical variables (Education, Depressed, Gender) converted to binary indicators.
+
+## Normalization
+
+```{r}
+cleaning = caret::preProcess(onehot_nhanes, method = c("range"), rangeBounds=c(0, 1))
+prep_nhanes = predict(cleaning, newdata=onehot_nhanes)
+```
+
+**Rationale:** Neural networks with stochastic gradient descent are scale-dependent. Min-max normalization [0,1] ensures equal feature importance and improves convergence, particularly with ReLU activations.
+
+## Train-Validation-Test Split
+
+```{r}
+train_idx <- createDataPartition(y = prep_nhanes[,"AlcoholDay"], p = 0.75, list = FALSE)
+training <- prep_nhanes[train_idx,]
+testing <- prep_nhanes[-train_idx,]
+
+val_idx <- createDataPartition(y = training[, "AlcoholDay"], p = 0.25, list = FALSE)
+validation <- training[val_idx,]
+training <- training[-val_idx,]
+
+cat("Training:", nrow(training), "| Validation:", nrow(validation), "| Test:", nrow(testing))
+```
+
+Holdout validation techniques splits the training data into training and testing set 75/25. Part of the training data is 'held-out' to validate the model. This validation set is used to measure the model performance, iteratively tweeking the model fruther to increase it. However, we also keep some data left out --the testing set--to see whether the change are meaningful on unseen data.
+
+:::
+
+# Model Development
+
+The first model tried was a simple multi-layer perceptron. 
+However, its performance being poor, a slightly different architecture had to be used.
+
+```{r}
+
+#| message: false
+#| warning: false
+cross_validation = trainControl(method = "repeatedcv", number = 5, repeats = 5, p = 0.1)
+
+mlp_hu50 <- train(AlcoholDay ~., data = training, method = "mlp", 
+                  trControl = cross_validation, tuneGrid = expand.grid(size = c(50)))
+
+mlp_hu150 <- train(AlcoholDay ~., data = training, method = "mlp", 
+                   trControl = cross_validation, tuneGrid = expand.grid(size = c(50)))
+
+test_sample_idx = seq(floor(nrow(testing) * 0.25))
+y_pred_hu50 <- predict(mlp_hu50, newdata = testing[test_sample_idx,])
+y_pred_hu150 <- predict(mlp_hu150, newdata = testing[test_sample_idx,])
+```
+
+::: {.columns}
+::: {.column}
+
+```{r}
+#| fig-width: 6
+#| fig-height: 3
+result = read.csv(here("neural_network/mlp_grid_result.csv"))
+p <- ggplot(data = result, mapping = aes(x = size)) +
+  geom_line(mapping = aes(y = RMSE, color = "RMSE"), linewidth = 1) +
+  geom_line(mapping = aes(y = MAE, color="MAE"), linewidth = 1) +
+  scale_color_manual(values = c("MAE" = "#a8ddb5", "RMSE" = "#fdbb84")) +
+  labs(x = "N. Hidden Units", y = "Performance", 
+       title="MLP Performance vs. Network Size", color = "Metric") +
+  theme_minimal()
+
+ggplotly(p)
+```
+
+:::
+::: {.column}
+
+```{r}
+#| fig-width: 6
+#| fig-height: 3
+test_result = cbind(testing[test_sample_idx,], y_pred_hu50, y_pred_hu150)
+ggplot(data = test_result, mapping = aes(x = seq(nrow(test_result)))) +
+  geom_line(mapping = aes(y = AlcoholDay, color = "Ground Truth"), linewidth = 1) +
+  geom_line(mapping = aes(y = y_pred_hu50, color = "50 Units"), linewidth = 0.8) +
+  geom_line(mapping = aes(y = y_pred_hu150, color = "150 Units"), linewidth = 0.8) +
+  scale_color_manual(values = c("50 Units" = "#a8ddb5", "150 Units" = "#fdbb84", 
+                                "Ground Truth" = "#2ca25f")) +
+  labs(x = "Observation", y = "Daily Alcohol Consumption", 
+       title = "Simple MLP: Poor Prediction Accuracy", color="Model") +
+  theme_minimal()
+```
+
+:::
+:::
+
+The second approach involved a deeper neural network, with four hidden layer instead of one. This enable the network to learn mode complexe patterns, that a shallow network cannot grasp.
+
+::: {.callout-tip collapse="true" title="More about the network's features"}
+
+- **Layers:** 4 hidden layers, 150 units each
+- **Activation:** ReLU (Rectified Linear Unit) - industry-standard default
+- **Optimizer:** ADAM - adaptive learning rate, superior to standard gradient descent
+- **Loss Function:** MSE (Mean Squared Error) for regression
+- **Epochs:** 200 training iterations
+
+:::
+
+```{r}
+# Separate the data into training, testing and validation set
+training <- prep_nhanes[train_idx,]
+testing <- prep_nhanes[-train_idx,]
+validation <- training[val_idx,]
+training <- training[-val_idx,]
+
+# Create a 'torch' dataset
+nhanes_dataset <- dataset(
+  name = "nhanes_dataset()",
+  initialize = function(df) {
+    df <- na.omit(df)
+    self$x <- as.matrix(df[,-c(1)]) %>% torch_tensor()
+    self$y <- as.matrix(df[, c(1)], ncol=1) %>% torch_tensor()
+  },
+  .getitem = function(i) {
+    list(x = self$x[i,], y = self$y[i])
+  },
+  .length = function() {
+    dim(self$x)[1]
+  }
+)
+
+# Instantiate a dataset object
+train_dataset <- nhanes_dataset(training)
+valid_dataset <- nhanes_dataset(validation)
+test_dataset <- nhanes_dataset(testing)
+
+# Instantiate a dataloader object, performing batch and shuffling during training
+train_loader <- dataloader(train_dataset, batch_size=32, shuffle=TRUE)
+valid_loader <- dataloader(valid_dataset, batch_size=32, shuffle=TRUE)
+test_loader <- dataloader(test_dataset, batch_size=32, shuffle=TRUE)
+
+# Create the network architectures
+seqnn <- nn_module(
+  initialize = function(d_in, d_hidden, d_out) {
+    self$net <- nn_sequential(
+      nn_linear(d_in, d_hidden),
+      nn_relu(),
+      nn_linear(d_hidden, d_hidden),
+      nn_relu(),
+      nn_linear(d_hidden, d_hidden),
+      nn_relu(),
+      nn_linear(d_hidden, d_hidden),
+      nn_relu(),
+      nn_linear(d_hidden, d_out)
+    )
+  },
+  forward = function(x) {
+    self$net(x)
+  }
+)
+
+# Train the network
+fitted <- seqnn %>%
+  setup(loss = nn_mse_loss(), optimizer = optim_adam, 
+        metrics = list(luz_metric_mae())) %>%
+  set_hparams(d_in = 14, d_hidden = 150, d_out = 1) %>%
+  fit(train_loader, epochs = 200, valid_data = valid_loader)
+
+# Helper function to reverse the scaling
+reverse_minmax <- function(y_true, max, min) {
+  unnorm <- y_true * (max - min) + min
+  return(unnorm)	
+}
+
+# Test performance on the validation set
+y_pred = predict(fitted, valid_loader) %>% as_array()
+y_pred_test = predict(fitted, test_loader) %>% as_array()
+y_true = valid_dataset$y %>% as_array()
+
+y_pred_unnorm = reverse_minmax(y_pred, max(model_nhanes$AlcoholDay), min(model_nhanes$AlcoholDay))
+y_pred_test_unnorm = reverse_minmax(y_pred_test, max(model_nhanes$AlcoholDay), min(model_nhanes$AlcoholDay))
+y_true_unnorm <- reverse_minmax(y_true, max(model_nhanes$AlcoholDay), min(model_nhanes$AlcoholDay))
+
+y_true_test = test_dataset$y %>% as_array()
+y_true_test_unnorm <- reverse_minmax(y_true_test, max(model_nhanes$AlcoholDay), min(model_nhanes$AlcoholDay))
+
+val_result <- data.frame(
+  y_true = y_true,
+  y_true_unnorm = y_true_unnorm,
+  y_pred = y_pred,
+  y_pred_unnorm = y_pred_unnorm,
+  res = y_true - y_pred,
+  res_unnorm = y_true_unnorm - y_pred_unnorm
+) %>%				
+  group_by(y_true_unnorm) %>%
+  mutate(
+    y_pred_agg = mean(y_pred),
+    y_pred_unnorm_agg = mean(y_pred_unnorm),
+    res_agg = mean(res),
+    res_unnorm_agg = mean(res_unnorm)
+  )
+
+test_result <- data.frame(
+  y_true = y_true_test,
+  y_true_unnorm = y_true_test_unnorm,
+  y_pred_test = y_pred_test,
+  y_pred_test_unnorm = y_pred_test_unnorm,
+  res = y_true_test - y_pred_test,
+  res_unnorm = y_true_test_unnorm - y_pred_test_unnorm
+) %>%				
+  group_by(y_true_unnorm) %>%
+  mutate(
+    y_pred_agg = mean(y_pred_test),
+    y_pred_unnorm_agg = mean(y_pred_test_unnorm),
+    res_agg = mean(res),
+    res_unnorm_agg = mean(res_unnorm)
+  )
+
+```
+
+# Results
+
+The final model achieves ~2.14 drinks/day average error, which is substantially better than the previous GLM (MAE ≈ 60). The model's performance is consistent across validation and test sets, indicating strong generalization without overfitting.
+
+The plot below show that the model has trouble predict heavy drinkers as we see the residuals, the difference between predicted daily consumption and real daily consumption, increases drastically. This can be easily explained by the very small amount of heavy drinkers in the data. Indeed, the consumption distribution is heavily shifted towards 1 (Poisson distribution).
+
+```{r}
+print(paste0("Mean Absolute Error (Validation):", round(mean(abs(val_result$res_unnorm)), 2), "drinks/day\n"))
+print(paste0("Mean Absolute Error (Testing):", round(mean(abs(test_result$res_unnorm)), 2), "drinks/day"))
+```
+
+:::{layout-ncol=2}
+
+```{r}
+#| fig-width: 4.5
+#| fig-height: 3.5
+val_plot <- ggplot(data = val_result, mapping = aes(x = y_true_unnorm)) +
+  geom_point(mapping = aes(y = res_unnorm), color = "#a8ddb5", alpha=0.5) +
+  geom_line(mapping = aes(y = res_unnorm_agg), color = "#fdbb84", linewidth = 1.2) +
+  labs(title="Validation Set Residuals", x = "Ground Truth (drinks/day)", y = "Residuals") +
+  theme_minimal()
+ggplotly(val_plot)
+```
+
+```{r}
+#| fig-width: 4.5
+#| fig-height: 3.5
+test_plot <- ggplot(data = test_result, mapping = aes(x = y_true_unnorm)) +
+  geom_point(mapping = aes(y = res_unnorm), color = "#a8ddb5", alpha=0.5) +
+  geom_line(mapping = aes(y = res_unnorm_agg), color = "#fdbb84", linewidth = 1.2) +
+  labs(title="Test Set Residuals", x = "Ground Truth (drinks/day)", y = "Residuals") +
+  theme_minimal()
+ggplotly(test_plot)
+```
+
+:::
+
+# Strategic Applications
+
+## Clinical Decision Support
+
+Our model enables identification of individuals likely to exhibit problematic consumption patterns based on demographic and health indicators, supporting:
+
+- Early intervention targeting
+- Resource allocation optimization
+- Personalized treatment planning
+
+## Compared to Statistical Model
+
+| Aspect | Poisson GLM | Neural Network |
+|--------|-------------|----------------|
+| **Primary Purpose** | Statistical inference | Prediction |
+| **Sample Size** | 2,318 | 4,435 (+91%) |
+| **Interpretability** | High (coefficient meaning) | Low (black box) |
+| **Accuracy (MAE)** | ~60 drinks/day | ~2.14 drinks/day |
+| **Use Case** | Understanding relationships | Individual risk prediction |
+
+::: {.callout-tip}
+Those two model serves different purposes: GLM identifies *what* factors matter and *why*; Neural Network predicts *who* is at risk. They can be combined for better insights.
+:::
+
+# Conclusion
+
+This neural network successfully transitions alcohol consumption analysis from statistical inference to predictive capability. By focusing on significant predictors identified in GLM analysis, we achieved a 91% increase in usable data while reducing dimensionality. The deep architecture (4 hidden layers, 150 units) demonstrates strong predictive performance (MAE ~2.14 drinks/day) with good generalization—enabling practical deployment for risk identification and targeted intervention strategies.
+
+The complementary use of GLM (for understanding) and Neural Network (for prediction) provides a comprehensive analytical framework supporting evidence-based health policy and clinical decision-making.
+
+## Limitation
+
+Although this model exhibits good performance on most cases, its performance drops for heavy drinkers. This is problematic as this at-risk population are the one that would benefits the most from prevention measures and interventions. Future model could try to model this minority better. However, it is likely that this task remains difficult without more quality data about the latter.
+
+Moreover, the observe population is american and limited (~4000 cases). Consequently, generalization of the model performance to other countries is not recommended.
