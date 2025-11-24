@@ -81,6 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#generalized-linear-model-family-binomial" id="toc-generalized-linear-model-family-binomial" class="nav-link active" data-scroll-target="#generalized-linear-model-family-binomial">Generalized Linear Model (family: Binomial)</a>
   <ul>
+  <li><a href="#research-questions" id="toc-research-questions" class="nav-link" data-scroll-target="#research-questions">Research questions</a></li>
   <li><a href="#make-outcome-variable-depressed-three-levels-binary" id="toc-make-outcome-variable-depressed-three-levels-binary" class="nav-link" data-scroll-target="#make-outcome-variable-depressed-three-levels-binary">Make outcome variable Depressed (three levels) binary</a></li>
   <li><a href="#visual-inspection-of-variable-depressed_bin" id="toc-visual-inspection-of-variable-depressed_bin" class="nav-link" data-scroll-target="#visual-inspection-of-variable-depressed_bin">Visual inspection of Variable Depressed_bin</a></li>
   <li><a href="#selection-of-variables" id="toc-selection-of-variables" class="nav-link" data-scroll-target="#selection-of-variables">Selection of variables</a></li>
@@ -102,6 +103,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#note-on-overdispersion" id="toc-note-on-overdispersion" class="nav-link" data-scroll-target="#note-on-overdispersion">Note on Overdispersion</a></li>
   <li><a href="#final-remark-on-model-selection" id="toc-final-remark-on-model-selection" class="nav-link" data-scroll-target="#final-remark-on-model-selection">Final remark on model selection</a></li>
+  <li><a href="#research-questions-answered" id="toc-research-questions-answered" class="nav-link" data-scroll-target="#research-questions-answered">Research questions answered</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -130,6 +132,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="generalized-linear-model-family-binomial" class="level2">
 <h2 class="anchored" data-anchor-id="generalized-linear-model-family-binomial">Generalized Linear Model (family: Binomial)</h2>
 <p>Mental health is a key public health concern, and NHANES provides rich data for examining factors linked to depressive symptoms. In this chapter, we use a binomial Generalized Linear Model (GLM) to investigate how demographic, socioeconomic, social, and lifestyle variables relate to depression. The GLM analysis also serves as a foundation for the more flexible modeling approach introduced in Chapter 4.</p>
+<section id="research-questions" class="level3">
+<h3 class="anchored" data-anchor-id="research-questions">Research questions</h3>
+<ol type="1">
+<li><p>Which demographic, socioeconomic, social, and lifestyle factors are most strongly associated with depressive symptoms?</p></li>
+<li><p>How does removing non-significant or conceptually overlapping predictors influence the model’s fit and interpretability?</p></li>
+<li><p>How well does the model discriminate between depressed and non-depressed individuals, and which classification threshold performs best?</p></li>
+</ol>
+</section>
 <section id="make-outcome-variable-depressed-three-levels-binary" class="level3">
 <h3 class="anchored" data-anchor-id="make-outcome-variable-depressed-three-levels-binary">Make outcome variable Depressed (three levels) binary</h3>
 <div class="cell">
@@ -585,6 +595,14 @@ Precision: 0.502</code></pre>
 <section id="final-remark-on-model-selection" class="level3">
 <h3 class="anchored" data-anchor-id="final-remark-on-model-selection">Final remark on model selection</h3>
 <p>Model 2, which includes <code>HealthGen</code>, provides the best statistical fit and is preferable for prediction. Model 3, which excludes <code>HealthGen</code>, yields a less optimal fit but offers clearer interpretability of the other predictors. Therefore, <strong>Model 2</strong> is suited for predictive purposes, whereas <strong>Model 3</strong> is more appropriate for understanding how socioeconomic and lifestyle factors relate to depressive symptoms.</p>
+</section>
+<section id="research-questions-answered" class="level3">
+<h3 class="anchored" data-anchor-id="research-questions-answered">Research questions answered</h3>
+<ol type="1">
+<li><p><strong>Key predictors of depression</strong>: Gender, poverty, marital status, general health, sleep duration, sleep trouble, and physical activity were significantly related to depressive symptoms, whereas age and BMI showed no meaningful effects.</p></li>
+<li><p><strong>Effects of removing predictors</strong>: Dropping non-significant variables improved interpretability, but removing HealthGen greatly worsened model fit. Thus, the model including HealthGen performs best statistically, while the reduced model offers clearer interpretation.</p></li>
+<li><p><strong>Model discrimination and threshold</strong>: The model showed moderate discrimination (AUC ≈ 0.71). Lowering the classification threshold from 0.5 to 0.22 substantially improved sensitivity, making it more effective at identifying depressed individuals.</p></li>
+</ol>
 </section>
 </section>
 

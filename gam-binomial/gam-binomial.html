@@ -108,16 +108,14 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#generalized-additive-model-family-binomial" id="toc-generalized-additive-model-family-binomial" class="nav-link active" data-scroll-target="#generalized-additive-model-family-binomial">Generalized Additive Model (family: Binomial)</a>
-  <ul>
+  <li><a href="#research-questions" id="toc-research-questions" class="nav-link active" data-scroll-target="#research-questions">Research questions</a></li>
   <li><a href="#exploratory-plots" id="toc-exploratory-plots" class="nav-link" data-scroll-target="#exploratory-plots">Exploratory plots</a></li>
   <li><a href="#adding-smooth-splines-to-the-model" id="toc-adding-smooth-splines-to-the-model" class="nav-link" data-scroll-target="#adding-smooth-splines-to-the-model">Adding smooth splines to the model</a></li>
   <li><a href="#standard-glm-for-comparison" id="toc-standard-glm-for-comparison" class="nav-link" data-scroll-target="#standard-glm-for-comparison">Standard GLM for comparison</a></li>
   <li><a href="#aic-comparison-between-glm-and-gam" id="toc-aic-comparison-between-glm-and-gam" class="nav-link" data-scroll-target="#aic-comparison-between-glm-and-gam">AIC comparison between GLM and GAM</a></li>
   <li><a href="#deviance-explained" id="toc-deviance-explained" class="nav-link" data-scroll-target="#deviance-explained">Deviance explained</a></li>
   <li><a href="#smooth-effects-of-the-gam" id="toc-smooth-effects-of-the-gam" class="nav-link" data-scroll-target="#smooth-effects-of-the-gam">Smooth effects of the GAM</a></li>
-  <li><a href="#final-interpretation-of-the-gam-model" id="toc-final-interpretation-of-the-gam-model" class="nav-link" data-scroll-target="#final-interpretation-of-the-gam-model">Final interpretation of the GAM model</a></li>
-  </ul></li>
+  <li><a href="#research-questions-answered" id="toc-research-questions-answered" class="nav-link" data-scroll-target="#research-questions-answered">Research questions answered</a></li>
   </ul>
 </nav>
 </div>
@@ -142,9 +140,15 @@ window.Quarto = {
 </header>
 
 
-<section id="generalized-additive-model-family-binomial" class="level2">
-<h2 class="anchored" data-anchor-id="generalized-additive-model-family-binomial">Generalized Additive Model (family: Binomial)</h2>
+<p>t ## Generalized Additive Model (family: Binomial)</p>
 <p>Building on the GLM results from Chapter 3, this chapter examines whether key predictors show nonlinear relationships with depression. To address this, we fit a binomial Generalized Additive Model (GAM), which allows flexible smooth effects and may provide a more realistic representation of the associations than the linear GLM structure.</p>
+<section id="research-questions" class="level3">
+<h3 class="anchored" data-anchor-id="research-questions">Research questions</h3>
+<ol type="1">
+<li><p>Do some factors show nonlinear relationships with depression that are not captured by the GLM’s linear terms?</p></li>
+<li><p>Does allowing nonlinear smooth effects in a GAM improve the overall model fit compared to the linear GLM?</p></li>
+</ol>
+</section>
 <section id="exploratory-plots" class="level3">
 <h3 class="anchored" data-anchor-id="exploratory-plots">Exploratory plots</h3>
 <div class="cell">
@@ -327,11 +331,12 @@ gam_depressed_1 23.135 6072.407</code></pre>
 </div>
 <p>The smooth effect plots visualize the nonlinear relationships estimated by the GAM. Unlike the GLM, which assumes straight-line effects, the GAM reveals curved, flexible associations: for example, a U-shaped effect of sleep duration and a non-linear increase in depression risk with rising poverty. These plots illustrate <strong>why</strong> the GAM achieves a better model fit than the linear GLM.</p>
 </section>
-<section id="final-interpretation-of-the-gam-model" class="level3">
-<h3 class="anchored" data-anchor-id="final-interpretation-of-the-gam-model">Final interpretation of the GAM model</h3>
-<p>The comparison between the linear GLM and the GAM shows that introducing nonlinear smooth terms yields a modest but consistent improvement in model fit. The GAM achieves a lower AIC and explains slightly more deviance, and its smooth terms reveal nonlinear patterns in poverty and sleep duration that the GLM cannot represent.</p>
-<p>Overall, the GAM provides a <strong>more flexible and realistic</strong> description of the underlying relationships, offering <strong>clearer insight</strong> into how effects vary across the predictor range. The GLM remains a simpler alternative, but the GAM delivers the <strong>richer interpretation</strong> needed when associations are not well captured by linear trends.</p>
-</section>
+<section id="research-questions-answered" class="level3">
+<h3 class="anchored" data-anchor-id="research-questions-answered">Research questions answered</h3>
+<ol type="1">
+<li><p>The GAM reveals <strong>clear nonlinear effects</strong> of Poverty and SleepHrsNight (edf &gt; 6, p &lt; 0.001), including a curved poverty pattern and a U-shaped sleep effect. These flexible smooth terms capture structure that the linear GLM cannot represent.</p></li>
+<li><p>Correspondingly, the GAM shows <strong>better model fit</strong> (AIC 6072 vs.&nbsp;6117; deviance explained 9.9% vs.&nbsp;8.9%), indicating that allowing nonlinearity provides a more accurate and realistic description of how these predictors relate to depression, while the GLM remains the simpler but less flexible alternative.</p></li>
+</ol>
 </section>
 
 </main>

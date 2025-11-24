@@ -61,6 +61,14 @@ str(nhanes_sub)
 
 Mental health is a key public health concern, and NHANES provides rich data for examining factors linked to depressive symptoms. In this chapter, we use a binomial Generalized Linear Model (GLM) to investigate how demographic, socioeconomic, social, and lifestyle variables relate to depression. The GLM analysis also serves as a foundation for the more flexible modeling approach introduced in Chapter 4.
 
+### Research questions
+
+1.  Which demographic, socioeconomic, social, and lifestyle factors are most strongly associated with depressive symptoms?
+
+2.  How does removing non-significant or conceptually overlapping predictors influence the model’s fit and interpretability?
+
+3.  How well does the model discriminate between depressed and non-depressed individuals, and which classification threshold performs best?
+
 ### Make outcome variable Depressed (three levels) binary
 
 ```{r}
@@ -476,3 +484,11 @@ Because `Depressed_bin` consists of individual Bernoulli observations (0/1), ove
 ### Final remark on model selection
 
 Model 2, which includes `HealthGen`, provides the best statistical fit and is preferable for prediction. Model 3, which excludes `HealthGen`, yields a less optimal fit but offers clearer interpretability of the other predictors. Therefore, **Model 2** is suited for predictive purposes, whereas **Model 3** is more appropriate for understanding how socioeconomic and lifestyle factors relate to depressive symptoms.
+
+### Research questions answered
+
+1.  **Key predictors of depression**: Gender, poverty, marital status, general health, sleep duration, sleep trouble, and physical activity were significantly related to depressive symptoms, whereas age and BMI showed no meaningful effects.
+
+2.  **Effects of removing predictors**: Dropping non-significant variables improved interpretability, but removing HealthGen greatly worsened model fit. Thus, the model including HealthGen performs best statistically, while the reduced model offers clearer interpretation.
+
+3.  **Model discrimination and threshold**: The model showed moderate discrimination (AUC ≈ 0.71). Lowering the classification threshold from 0.5 to 0.22 substantially improved sensitivity, making it more effective at identifying depressed individuals.

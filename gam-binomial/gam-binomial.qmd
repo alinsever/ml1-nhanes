@@ -24,10 +24,17 @@ library(mgcv)
 library(here)
 
 ```
-
+t
 ## Generalized Additive Model (family: Binomial)
 
 Building on the GLM results from Chapter 3, this chapter examines whether key predictors show nonlinear relationships with depression. To address this, we fit a binomial Generalized Additive Model (GAM), which allows flexible smooth effects and may provide a more realistic representation of the associations than the linear GLM structure.
+
+### Research questions
+
+1.  Do some factors show nonlinear relationships with depression that are not captured by the GLM’s linear terms?
+
+2.  Does allowing nonlinear smooth effects in a GAM improve the overall model fit compared to the linear GLM?
+
 
 ### Exploratory plots
 
@@ -171,8 +178,8 @@ plot(gam_depressed_1, pages = 1, shade = TRUE, shade.col = "lightgray")
 
 The smooth effect plots visualize the nonlinear relationships estimated by the GAM. Unlike the GLM, which assumes straight-line effects, the GAM reveals curved, flexible associations: for example, a U-shaped effect of sleep duration and a non-linear increase in depression risk with rising poverty. These plots illustrate **why** the GAM achieves a better model fit than the linear GLM.
 
-### Final interpretation of the GAM model
+### Research questions answered
 
-The comparison between the linear GLM and the GAM shows that introducing nonlinear smooth terms yields a modest but consistent improvement in model fit. The GAM achieves a lower AIC and explains slightly more deviance, and its smooth terms reveal nonlinear patterns in poverty and sleep duration that the GLM cannot represent.
+1.  The GAM reveals **clear nonlinear effects** of Poverty and SleepHrsNight (edf > 6, p < 0.001), including a curved poverty pattern and a U-shaped sleep effect. These flexible smooth terms capture structure that the linear GLM cannot represent.
 
-Overall, the GAM provides a **more flexible and realistic** description of the underlying relationships, offering **clearer insight** into how effects vary across the predictor range. The GLM remains a simpler alternative, but the GAM delivers the **richer interpretation** needed when associations are not well captured by linear trends.
+2.  Correspondingly, the GAM shows **better model fit** (AIC 6072 vs. 6117; deviance explained 9.9% vs. 8.9%), indicating that allowing nonlinearity provides a more accurate and realistic description of how these predictors relate to depression, while the GLM remains the simpler but less flexible alternative.
