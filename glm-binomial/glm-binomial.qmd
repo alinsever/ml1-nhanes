@@ -258,6 +258,8 @@ coef(summary(glm_depressed_1))
 
 There is **strong evidence against the null hypothesis** that `Gender`, `Poverty`, `MaritalStatus`, `HealthGen`, `SleepHrsNight`, `SleepTrouble` and `PhysActivitie` have no effect. Whereas `Age` and `BMI` show **no significant effect** on Depressed_bin.
 
+**Interpretation example**: For individuals who are married, the log-odds of being depressed are 0.70 lower compared to the reference group (estimate = –0.704). Exponentiating the coefficient indicates that being married is associated with roughly a 50% reduction in the odds of depression (OR ≈ 0.49), providing strong evidence against the null hypothesis that marital status has no effect.
+
 #### Checking for Collinearity
 
 I am concerned about potential collinearity between the predictors, as this could hinder a proper interpretation of their individual effects. Therefore, I checked the model for signs of collinearity.
@@ -351,9 +353,11 @@ plot(roc_obj)
 
 ```
 
-#### ANOVA: comparing GLM and GAM models
+The AUC of 0.706 indicates that the model has a good discriminatory ability, correctly ranking depressed individuals above non-depressed individuals in about 71% of all case–control pairs.
 
-As a **preliminary check**, an analysis of deviance (ANOVA) is being conducted to test whether the GAM provides a statistically significant improvement over the simpler GLM.
+#### ANOVA: comparing GLM models 2 and 3
+
+As a **preliminary check**, an analysis of deviance (ANOVA) is being conducted to test whether `HealthGen` in model 2 significantly improves model fit compared to model 3.
 
 ```{r}
 #| label: "ANOVA_model comparison"
@@ -371,7 +375,7 @@ p_val
 
 ```
 
-Removing HealthGen worsened model fit substantially (ΔDeviance = 146.46, p \< 0.001), confirming its strong but conceptually overlapping contribution.
+Removing `HealthGen` worsened model fit substantially (ΔDeviance = 146.46, p \< 0.001), confirming its strong but conceptually overlapping contribution.
 
 #### Akaike Information Criterion (AIC)
 
@@ -463,7 +467,7 @@ Because the default threshold of 0.5 yielded very low sensitivity, adjusting the
 coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"))
 ```
 
-The ROC analysis suggests an optimal threshold of about 0.22, increasing sensitivity to 0.61 while maintaining reasonable specificity (0.69). This lower threshold substantially improves the detection of depressed individuals compared to the default 0.5.
+With the default threshold of 0.5, the model detects only 15% of depressed individuals, meaning that most true cases are misclassified as non-depressed. After lowering the threshold to 0.22, sensitivity increases to 61%, making the model substantially better at identifying depressed individuals.
 
 ### Note on Overdispersion
 

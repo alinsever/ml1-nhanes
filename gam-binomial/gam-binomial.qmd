@@ -27,7 +27,7 @@ library(here)
 
 ## Generalized Additive Model (family: Binomial)
 
-Building on the GLM results from Chapter 3, this chapter examines whether key predictors—especially poverty and sleep duration—show nonlinear relationships with depression. To address this, we fit a binomial Generalized Additive Model (GAM), which allows flexible smooth effects and may provide a more realistic representation of the associations than the linear GLM structure.
+Building on the GLM results from Chapter 3, this chapter examines whether key predictors show nonlinear relationships with depression. To address this, we fit a binomial Generalized Additive Model (GAM), which allows flexible smooth effects and may provide a more realistic representation of the associations than the linear GLM structure.
 
 ### Exploratory plots
 
