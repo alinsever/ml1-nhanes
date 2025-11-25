@@ -1,7 +1,7 @@
 # Project Introduction
 
-This project applies a broad range of statistical and machine‑learning methods to explore several major public‑health challenges reflected in the NHANES dataset. As Master’s students, our goal was not only to build predictive models but also to understand how different modelling frameworks highlight different aspects of the data.
+This project applies a broad range of statistical and machine-learning methods to explore several major public-health challenges reflected in the NHANES dataset. As Master’s students, our goal was not only to build predictive models but also to understand how different modelling frameworks highlight different aspects of the data.
 
-By analysing obesity, mental health, and alcohol consumption through six modelling approaches (linear regression, Poisson regression, logistic regression, GAMs, support vector machines, and neural networks) we combined classical inference with modern prediction‑focused techniques.
+By analysing obesity, mental health, and alcohol consumption through six modelling approaches (linear regression, Poisson regression, logistic regression, GAMs, support vector machines, and neural networks) we combined classical inference with modern prediction-focused techniques.
 
-Using this diverse set of tools allowed us to capture both linear and non‑linear patterns, compare interpretability versus predictive power, and illustrate how methodological choices influence the insights gained. Overall, the project shows how complementary modelling strategies help illuminate complex health behaviours from multiple perspectives.
+Using this diverse set of tools allowed us to capture both linear and non-linear patterns, compare interpretability versus predictive power, and illustrate how methodological choices influence the insights gained. Overall, the project shows how complementary modelling strategies help illuminate complex health behaviours from multiple perspectives.
