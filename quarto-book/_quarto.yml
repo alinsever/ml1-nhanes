@@ -3,13 +3,24 @@ project:
 
 book:
   title: "Exploration of Health indicator and Modeling"
-  author: "Norah Jones"
-  date: "9/29/2025"
+  subtitle: "A Journey of Inference and Predictions"
+  author: "Huber Daniel, Sever Alin & Girardin Robin"
+  date: "11/28/2025"
   chapters:
     - index.qmd
-    - intro.qmd
-    - summary.qmd
-    - references.qmd
+    - part: "Part I: Obesity" 
+      chapters: 
+        - linear_model.qmd
+        - support_vector_machine.qmd
+    - part: "Part II: Mental Health"
+      chapters:
+        - glm-binomial.qmd
+        - gam-binomial.qmd
+    - part: "Part III: Alcohol Consumption"
+      chapters:
+        - glm_poisson.qmd
+        - neural_network.qmd
+
 
 bibliography: references.bib
 
@@ -18,8 +29,11 @@ format:
     theme:
       - cosmo
       - brand
-  pdf:
-    documentclass: scrreprt
+    code-fold: true
+    code-summary: "Show/Hide code"
+    toc: true
+    toc-depth: 3
+    number-sections: true
 
 
 

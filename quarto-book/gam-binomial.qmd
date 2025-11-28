@@ -1,0 +1,178 @@
+---
+title: "Feeling Depressed Investigation - Extension"
+subtitle: "Binomial Generalized Additive Model"
+format: html
+---
+
+```{r}
+#| label: "libraries"
+#| warning: false
+#| message: false
+#| include: false
+
+library(tidyverse)
+library(patchwork)
+library(NHANES)
+library(car)
+library(pROC)
+library(mgcv)
+library(here)
+
+```
+
+Building on the GLM results from Chapter 3, this chapter examines whether key predictors show nonlinear relationships with depression. To address this, we fit a binomial Generalized Additive Model (GAM), which allows flexible smooth effects and may provide a more realistic representation of the associations than the linear GLM structure.
+
+### Research questions
+
+1.  Do some factors show nonlinear relationships with depression that are not captured by the GLM’s linear terms?
+
+2.  Does allowing nonlinear smooth effects in a GAM improve the overall model fit compared to the linear GLM?
+
+
+### Exploratory plots
+
+```{r}
+#| label: "Plot_nonlinear_effects"
+#| message: false
+#| warning: false
+#| fig-height: 3
+#| fig-width: 6
+
+Depressed_data_imp <- readRDS(here("depressed_imp.rds"))
+
+ggplot(Depressed_data_imp, aes(x = Poverty, y = as.numeric(Depressed_bin) - 1)) +
+  geom_jitter(height = 0.05, alpha = 0.3, color = "gray60") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"),
+              color = "blue", se = FALSE) +
+  geom_smooth(method = "loess", color = "red", se = FALSE) +
+  labs(
+    y = "Probability of Depression",
+    title = "Poverty vs. Probability of Depression",
+    subtitle = "Blue = logistic fit (GLM), Red = flexible smoother (LOESS)"
+  )
+
+ggplot(Depressed_data_imp, aes(x = SleepHrsNight, y = as.numeric(Depressed_bin) - 1)) +
+  geom_jitter(height = 0.05, alpha = 0.3, color = "gray60") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"),
+              color = "blue", se = FALSE) +
+  geom_smooth(method = "loess", color = "red", se = FALSE) +
+  labs(
+    y = "Probability of Depression",
+    title = "Sleep hours per night vs. Probability of Depression",
+    subtitle = "Blue = logistic fit (GLM), Red = flexible smoother (LOESS)"
+  )
+
+
+```
+
+The exploratory plots indicate that several predictors may have nonlinear associations with depression. In particular, the effect of `Poverty` does not appear strictly linear, and `SleepHrsNight` shows a pronounced U-shaped pattern, with both short and long sleep durations linked to higher depression probabilities. These observations suggest that a flexible modeling approach such as a GAM may better capture the underlying relationships than a standard GLM.
+
+### Adding smooth splines to the model
+
+To capture these **non-linear patterns** more accurately, a Generalized Additive Model (**GAM**) with **smooth spline terms** for `Poverty` and `SleepHrsNight` is being estimated using the `mgcv` package.
+
+<details>
+
+<summary>Show output</summary>
+
+```{r}
+#| label: "GAM_Binomial_1"
+#| message: false
+
+gam_depressed_1 <- gam(Depressed_bin ~ s(Poverty) + s(SleepHrsNight) +
+                       Gender + MaritalStatus + SleepTrouble + PhysActive,
+                     data = Depressed_data_imp, family = binomial)
+summary(gam_depressed_1)$p.table      # Parametric coefficients
+summary(gam_depressed_1)$s.table      # Smooth terms
+
+```
+
+</details>
+
+The GAM results confirm that both `Poverty` and `SleepHrsNight` exhibit **significant non-linear effects** on depression probability, as indicated by high estimated degrees of freedom (**edf \> 6**) and p-values \< 0.001.
+
+### Standard GLM for comparison
+
+For further comparison, a standard **Generalized Linear Model (GLM)** with the same predictors but assuming linear effects for `Poverty` and `SleepHrsNight` is also fitted.
+
+<details>
+
+<summary>Show output</summary>
+
+```{r}
+#| label: "GLM_Binomial_1"
+#| warning: false
+#| message: false
+
+glm_depressed_1 <- glm(Depressed_bin ~ Poverty + SleepHrsNight +
+  Gender + MaritalStatus + SleepTrouble + PhysActive,
+  data = Depressed_data_imp,
+  family = binomial)
+
+coef(summary(glm_depressed_1))     # Parametric coefficients
+```
+
+</details>
+
+### AIC comparison between GLM and GAM
+
+To evaluate whether the nonlinear smooth terms in the GAM improve model fit, the Akaike Information Criterion (AIC) is compared between the linear GLM and the GAM. Lower AIC values indicate a better balance between goodness of fit and model complexity.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+AIC(glm_depressed_1, gam_depressed_1)
+
+```
+
+The AIC comparison shows that the GAM (AIC = 6072.4) provides a better fit than the linear GLM (AIC = 6117.2), despite its higher complexity. Because AIC penalizes additional parameters, this improvement indicates that the nonlinear spline terms capture meaningful structure in the data that the GLM cannot represent.
+
+### Deviance explained
+
+While AIC compares overall model fit, the *deviance explained* quantifies how much of the variation in the outcome is captured by the model. In `mgcv`, this measure is reported in the GAM summary output and is conceptually similar to an $R^2$ value for logistic models. To ensure a fair comparison, the residual deviance of the GLM is extracted manually.
+
+```{r}
+#| label: "Deviance_Explained"
+#| warning: false
+#| message: false
+
+# Deviance explained for the GLM
+glm_null_dev  <- glm_depressed_1$null.deviance
+glm_resid_dev <- deviance(glm_depressed_1)   # FIX: mgcv-safe
+
+glm_dev_expl <- 1 - (glm_resid_dev / glm_null_dev)
+
+# Deviance explained for the GAM
+gam_dev_expl <- summary(gam_depressed_1)$dev.expl
+
+glm_dev_expl
+gam_dev_expl
+
+```
+
+The GAM explains slightly more deviance (9.9% vs. 8.9%), consistent with its lower AIC.
+
+### Smooth effects of the GAM
+
+To illustrate the estimated nonlinear effects of `Poverty` and `SleepHrsNight`, partial effect plots of the smooth terms are shown below. These plots display the functional form learned by the GAM, along with approximate 95% confidence intervals.
+
+```{r}
+#| label: "GAM_Smooth_Plots"
+#| warning: false
+#| message: false
+#| fig-height: 3
+#| fig-width: 6
+
+plot(gam_depressed_1, pages = 1, shade = TRUE, shade.col = "lightgray")
+
+```
+
+The smooth effect plots visualize the nonlinear relationships estimated by the GAM. Unlike the GLM, which assumes straight-line effects, the GAM reveals curved, flexible associations: for example, a U-shaped effect of sleep duration and a non-linear increase in depression risk with rising poverty. These plots illustrate **why** the GAM achieves a better model fit than the linear GLM.
+
+### Research questions answered
+
+1.  The GAM reveals **clear nonlinear effects** of Poverty and SleepHrsNight (edf > 6, p < 0.001), including a curved poverty pattern and a U-shaped sleep effect. These flexible smooth terms capture structure that the linear GLM cannot represent.
+
+2.  Correspondingly, the GAM shows **better model fit** (AIC 6072 vs. 6117; deviance explained 9.9% vs. 8.9%), indicating that allowing nonlinearity provides a more accurate and realistic description of how these predictors relate to depression, while the GLM remains the simpler but less flexible alternative.

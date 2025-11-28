@@ -1,3 +1,8 @@
+---
+title: "Introduction"
+format: html
+---
+
 # Project Introduction
 
 This project applies a broad range of statistical and machine-learning methods to explore several major public-health challenges reflected in the NHANES dataset. As Master’s students, our goal was not only to build predictive models but also to understand how different modelling frameworks highlight different aspects of the data.
