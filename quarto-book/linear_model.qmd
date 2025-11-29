@@ -35,7 +35,8 @@ pkgs <- c("tidyverse",
           "broom",
           "car",
           "sandwich",
-          "lmtest"
+          "lmtest",
+					"here"
           )
 
 missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
