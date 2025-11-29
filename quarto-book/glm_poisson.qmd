@@ -55,7 +55,7 @@ library(mgcv)
 library(multcomp)
 library(plotly)
 
-nhanes <- readRDS(here("nhanes.rds"))
+nhanes <- readRDS(here("data", "nhanes.rds"))
 
 nhanes <- nhanes %>%
   mutate(

@@ -106,7 +106,7 @@ Where:
 
 # selecting only the variables for BMI
 
-nh_raw1 <- readRDS("../nhanes.rds")
+nh_raw1 <- readRDS(here("data", "nhanes.rds"))
 
 nh_raw <- nh_raw1 %>% 
   filter(Age >= 18) %>%
