@@ -45,5 +45,4 @@ Thumbs.db
 */_cache/
 **/*_cache/
 *.RData
-*.rds
 *.pdf
