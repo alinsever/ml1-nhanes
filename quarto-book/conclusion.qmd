@@ -34,3 +34,11 @@ The combination of regression and machine learning reveals that:
 - Alcohol consumption can be predicted accurately with deep learning, while GLM provides valuable interpretability.
 
 Together, the six models provide a balanced analytical framework: statistical inference identifies the key drivers of health outcomes, while machine learning improves our ability to predict who is at risk. This integrated approach strengthens both our understanding of the data and its practical applications for public health and clinical decision-making.
+
+### Use of AI Tools
+
+In this project, we used GenAI tools to support several parts of the workflow. First, AI was used to help clarify modelling concepts and resolve questions about the machine-learning methods we applied, such as SVMs and GAMs. It also assisted in checking interpretations and ensuring that our analytical decisions were technically sound.
+
+In addition, we used GenAI as a writing assistant to help structure explanations, improve coherence, and ensure that the modelling results were communicated clearly in the report.
+
+It is important to note that GenAI sometimes produced ambiguous or inconsistent answers when similar questions were phrased differently, or when new prompts did not fully align with the previous narrative. All outputs were therefore reviewed critically, and final decisions and interpretations were made manually.
