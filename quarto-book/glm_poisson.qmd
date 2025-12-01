@@ -33,17 +33,17 @@ execute:
 **Statistical Confidence:** All findings significant at p \< 0.05 level (n=2,318 observations)
 :::
 
-# Background & Objectives
+## Background & Objectives
 
 Alcohol consumption is attributed as a major risk factor for many diseases. For example, according the the [National Institute on Alcohol Abuse and Alcoholism](https://www.niaaa.nih.gov/alcohols-effects-health/alcohols-effects-body), women that drink alcohol have 5 to 15% chance more of getting breast cancer. Moreover, in Europe in 2020, alcohol consumption can be attributed to the death of 3.6 people per 100'000 ([Eurostat](https://ec.europa.eu/eurostat/web/products-eurostat-news/w/ddn-20231010-1)). As such, the effect of alcohol consumption on society is tremendous, prompting the need of a better understanding of its predictors. This analysis investigates the relationship between daily alcohol consumption and physical/mental health indicators using NHANES data. The primary objective is to identify significant predictors of alcohol consumption patterns to inform health intervention strategies, and enable targetted prevention measures.
 
 Our objective it to investigate whether there is a measurable link between daily alcohol consumption and physical/mental health indicators.
 
-# Methodology
+## Methodology
 
 :::: {.columns}
 ::: {.column}
-## Data & Sample
+### Data & Sample
 
 ```{r}
 library(readr)
@@ -86,11 +86,11 @@ The predictors we have at our disposal can be classified into the following cate
 :::
 ::: {.column}
 
-## Statistical Approach
+### Statistical Approach
 
 The solve our research question, we chose a Generalized Linear Model with Poisson family distribution, appropriate for count data with discrete outcomes. While non-linear models (GAM) might capture relationships better, the GLM provides superior interpretability for actionable insights—critical for health policy decisions.
 
-## Data Cleaning Strategy
+### Data Cleaning Strategy
 
 ```{r}
 model_nhanes <- nhanes %>%
@@ -106,9 +106,9 @@ The data had a lot missing values. To ensure having as much complete observation
 :::
 ::::
 
-# Results
+## Results
 
-## Outcome Distribution
+### Outcome Distribution
 
 ::: {layout-ncol="2"}
 ```{r}
@@ -135,7 +135,7 @@ nhanes %>%
 
 The outcome follows a Poisson distribution with median of 2 drinks/day and high variability, typical of alcohol consumption patterns.
 
-## Model Fit & Significant Predictors
+### Model Fit & Significant Predictors
 
 ::: {.callout-note collapse="true" title="See full statistical output"}
 ```{r}
@@ -152,7 +152,7 @@ summary(model)
 
 **Physical Health:** We found strong evidence at the 5% significance level under the null hypothesis that the coefficients of `SleepHrsNight` & `BPSysAve`s, on average, significantly different from 0. Considering all other variables constant, an increase of one hour slept per night decrease daily alcohol consumption by 3.8% on average.
 
-## Model Validation
+### Model Validation
 
 ::: {.callout-note collapse="true" title="See education-level contrast analysis output"}
 ```{r}
@@ -184,7 +184,7 @@ drop1(model, test="F")
 
 Finally, all identified significant predictors produce substantial changes in model fit when removed, confirming their importance.
 
-## Predictive Performance
+### Predictive Performance
 
 :::: {.columns}
 ::: {.column}
@@ -212,7 +212,7 @@ ggplotly(p)
 :::
 ::::
 
-# Strategic Implications
+## Strategic Implications
 
 The previous findings provide useful insights for a better prevention targetted on the right demographics, such as males, younger adults, and lower education groups. Promoting healthy sleep patterns could be explored to reduce alcohol consumptions. Additionnaly, lower-income population show higher consumption. Social determinants matter!
 
@@ -222,11 +222,11 @@ Our findings also brings insights for the clinical practice,
 -   **Education-Based Outreach:** Tailor messaging to education levels for maximum impact
 -   **Holistic Assessment:** Physical and mental health indicators jointly influence consumption patterns
 
-## Limitations
+### Limitations
 
 With all things considers, the analysis has severaly limits. Firstly, the model has been designed for inference and has poor forecasting accuracy. Although we retained more than 2000 observation, the deletion of 75% of the data my have introduce a selection bias. As self-reported measures, depression and other health variables are subject to reporting biases.
 
-# Conclusion
+## Conclusion
 
 This analysis provides robust statistical evidence that daily alcohol consumption is significantly influenced by demographic factors (gender, age, education), mental health indicators (depression), lifestyle factors (sleep duration), and socioeconomic status (poverty index). The findings are usefull in supporting targeted intervention strategies that address both individual risk factors and social determinants of health.
 

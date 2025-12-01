@@ -35,7 +35,7 @@ list.files()
 
 ```
 
-# Introduction
+## Introduction
 
 In the previous chapter, we examined how demographic, socioeconomic, lifestyle, and clinical factors were linearly associated with BMI. While this offered insight into individual predictors, it also showed that BMI relationships are weak, complex, and often non-linear. Building on that foundation, the next step is to evaluate whether obesity can be predicted more effectively using machine learning methods that capture non-linear patterns.
 
@@ -43,7 +43,7 @@ The goal of this chapter is to develop and assess Support Vector Machine (SVM) m
 
 Together, these models allow us to explore whether moving from classical regression to non-linear machine learning improves predictive accuracy, and to compare the trade-offs between interpretability and flexibility when modelling obesity risk.
 
-# Data Cleaning and Preparation
+## Data Cleaning and Preparation
 
 This analysis uses the same cleaned NHANES dataset prepared for the earlier linear regression models to ensure consistency across modelling approaches. The same demographic, socioeconomic, lifestyle, and clinical predictors are retained so that the SVM results can be meaningfully compared with the regression findings.
 
@@ -116,7 +116,7 @@ nhanes_svm <- nh_cc |>
 
 ```
 
-# Modelling Framework
+## Modelling Framework
 
 An SVM is a supervised machine learning method that identifies the decision boundary which best separates classes in a feature space. For linearly separable data, it finds the hyperplane with the maximum margin between classes. For more complex, non-linear relationships, SVMs can project the data into a higher-dimensional space using kernel functions. This study evaluates two commonly used SVM variants:
 
@@ -125,7 +125,7 @@ An SVM is a supervised machine learning method that identifies the decision boun
 
 Using both models enables a comparison between a simple, interpretable classifier and a more flexible, non-linear alternative.
 
-## Outcome Variable
+### Outcome Variable
 
 The prediction task is framed as a binary classification problem. Body Mass Index (BMI) was converted into a categorical variable:
 
@@ -134,7 +134,7 @@ The prediction task is framed as a binary classification problem. Body Mass Inde
 
 This aligns with standard clinical definitions and enables direct classification using SVM algorithms.
 
-## Predictor Variables
+### Predictor Variables
 
 The predictors used in this analysis are the same cleaned variables from the linear regression project:
 
@@ -145,7 +145,7 @@ The predictors used in this analysis are the same cleaned variables from the lin
 
 All predictors were selected based on theoretical relevance and completeness in the cleaned dataset.
 
-## Data Partitioning
+### Data Partitioning
 
 To fairly assess model performance, the dataset was split into:
 
@@ -168,7 +168,7 @@ testing$obese  <- relevel(testing$obese, ref = "obese")
 
 ```
 
-## Cross-validation setup
+### Cross-validation setup
 
 To ensure reliable model evaluation, both SVM models were tuned using repeated 10-fold cross-validation.
 
@@ -221,7 +221,7 @@ confusionMatrix(test_pred_linear, testing$obese)
 The linear SVM performed poorly. It failed to identify any obese individuals (Sensitivity = 0), classifying all cases as not-obese. Although specificity was perfect (1.00), overall accuracy (66.7%) matched the no-information rate and Kappa was 0, indicating no predictive value beyond chance. These results show that obesity is not linearly separable using the available NHANES predictors; a single linear boundary cannot separate obese from non-obese individuals. This motivates the use of a non-linear model, such as the radial SVM, to capture more complex patterns.
 
 
-### Radial SVM
+## Radial SVM
 
 ```{r svm_radial}
 #| code-fold: false
