@@ -65,13 +65,13 @@ options(contrasts = c("contr.treatment","contr.poly")) # default anyway
 
 **The goal is to explain wich factors are associated with BMI in US adults** (NHANES dataset), controling for demographics (age, gender, race, education), socio-economic indicators (education, income) and lifestyle (sleep, physical activity, alcohol, smoking). We will start simple and incrementally extend to a multiple linear regression, also adding multiple regression effects that are conditional on the other covariates in the model.
 
-### Linear Models for BMI
+## Linear Models for BMI
 
 Body Mass Index (BMI) is a continuous variable calculated as weight (kg) divided by height squared ($m^{2}$). BMI is a proxy for body fat and is strongly related to chronic diseases such as diabetes, cardiovascular disease and hypertension.
 
 In this analysis, we use NHANES adult participants (Age \>= 18) to examine how demographics, socioeconomic status and lifestyle behaviors are associated withBMI
 
-### Model Specifications
+## Model Specifications
 
 We model BMI as a linear function of selected predictors:
 
@@ -83,7 +83,7 @@ Where:
 -   $\beta_1$...$\beta_8$ are the regression coefficients representing the effect on each predictor.
 -   $\epsilon$ represents the random error term (assumed that it is normally distributed)
 
-### Reasearch Questions
+## Reasearch Questions
 
 -   After adjusting for covariates, how does BMI vary with Age?
 -   Do demographic factors (Gender, Race, Education) show overall association with BMI?

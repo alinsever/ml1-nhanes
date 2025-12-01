@@ -4,7 +4,6 @@ format: html
 editor: source
 ---
 
-## Conclusion
 
 This project applied six statistical and machine-learning models to NHANES data to examine three major health outcomes: **BMI**, **depressive symptoms**, and **daily alcohol consumption**. Together, the models demonstrate how classical regression and modern ML provide complementary insights: *regression clarifies which factors matter and why, while ML improves prediction and pattern detection in complex health behaviors*.
 
