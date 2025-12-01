@@ -54,7 +54,7 @@ str(nhanes_sub)
 
 Mental health is a key public health concern, and NHANES provides rich data for examining factors linked to depressive symptoms. In this chapter, we use a binomial Generalized Linear Model (GLM) to investigate how demographic, socioeconomic, social, and lifestyle variables relate to depression. The GLM analysis also serves as a foundation for the more flexible modeling approach introduced in Chapter 4.
 
-### Research questions
+## Research questions
 
 1.  Which demographic, socioeconomic, social, and lifestyle factors are most strongly associated with depressive symptoms?
 
@@ -62,7 +62,7 @@ Mental health is a key public health concern, and NHANES provides rich data for 
 
 3.  How well does the model discriminate between depressed and non-depressed individuals, and which classification threshold performs best?
 
-### Make outcome variable Depressed (three levels) binary
+## Make outcome variable Depressed (three levels) binary
 
 ```{r}
 #| label: "Depressed binomial"
@@ -86,7 +86,7 @@ table(nhanes_sub$Depressed_bin, useNA = "ifany")
 
 ```
 
-### Visual inspection of Variable Depressed_bin
+## Visual inspection of Variable Depressed_bin
 
 ```{r}
 #| label: "Depressed_bin Visuals"
@@ -186,7 +186,7 @@ p_health + p_phys
 
 ```
 
-### Selection of variables
+## Selection of variables
 
 Previous research has shown that depression is often associated with demographic, socioeconomic, social, health, and lifestyle factors. Based on these findings and after visual inspection of the graphs above, the following 9 variables are included in the first model:
 
@@ -198,7 +198,7 @@ Previous research has shown that depression is often associated with demographic
 
 These choices are supported by findings in NHANES-based studies, where factors such as poverty, marital status, physical activity, sleep problems, BMI, and general health perception were among the strongest predictors of depression (see e.g. Zhang et al., *BMC Medical Informatics and Decision Making*, 2025).
 
-### Handling of missings
+## Handling of missings
 
 ```{r}
 #| label: "Missings"
@@ -242,7 +242,7 @@ saveRDS(Depressed_data_imp, "depressed_imp.rds")
 
 There were missing values in `Poverty` (443), `MaritalStatus` (236), `BMI` (51), and `SleepHrsNight` (13), while all other variables were complete. Missing values in `Poverty`, `BMI`, and `SleepHrsNight` were imputed using the median, whereas no suitable imputation strategy was identified for `MaritalStatus`.
 
-### Model 1: Full model
+## Model 1: Full model
 
 ```{r}
 #| label: "GLM_Binomial_1"
@@ -261,7 +261,7 @@ There is **strong evidence against the null hypothesis** that `Gender`, `Poverty
 
 **Interpretation example**: For individuals who are married, the log-odds of being depressed are 0.70 lower compared to the reference group (estimate = –0.704). Exponentiating the coefficient indicates that being married is associated with roughly a 50% reduction in the odds of depression (OR ≈ 0.49), providing strong evidence against the null hypothesis that marital status has no effect.
 
-#### Checking for Collinearity
+### Checking for Collinearity
 
 I am concerned about potential collinearity between the predictors, as this could hinder a proper interpretation of their individual effects. Therefore, I checked the model for signs of collinearity.
 
@@ -276,7 +276,7 @@ max(vif(glm_depressed_1)[ , "GVIF^(1/(2*Df))"])
 
 All VIF values are \<2, meaning the model does not suffer from collinearity.
 
-### Model 2: Removing non-significant predictors
+## Model 2: Removing non-significant predictors
 
 <details>
 
@@ -315,7 +315,7 @@ drop1(glm_depressed_2, test = "Chisq")[ , "Pr(>Chi)", drop = FALSE]
 
 All seven predictors showed significant χ² tests and thus contribute meaningfully to the model fit.
 
-### Model 3: Removing conceptually collinear predictor (HealthGen)
+## Model 3: Removing conceptually collinear predictor (HealthGen)
 
 `HealthGen` was removed in Model 3 because self-rated general health overlaps conceptually with depressive symptoms. Since the aim is interpretation rather than maximizing predictive accuracy, excluding `HealthGen` avoids this conceptual redundancy.
 
@@ -356,7 +356,7 @@ plot(roc_obj)
 
 The AUC of 0.706 indicates that the model has a good discriminatory ability, correctly ranking depressed individuals above non-depressed individuals in about 71% of all case–control pairs.
 
-#### ANOVA: comparing GLM models 2 and 3
+### ANOVA: comparing GLM models 2 and 3
 
 As a **preliminary check**, an analysis of deviance (ANOVA) is being conducted to test whether `HealthGen` in model 2 significantly improves model fit compared to model 3.
 
@@ -378,7 +378,7 @@ p_val
 
 Removing `HealthGen` worsened model fit substantially (ΔDeviance = 146.46, p \< 0.001), confirming its strong but conceptually overlapping contribution.
 
-#### Akaike Information Criterion (AIC)
+### Akaike Information Criterion (AIC)
 
 The AIC is a commonly used measure of model fit that balances model accuracy and complexity. It is chosen because it allows a direct **comparison between models with different numbers of parameters**, penalizing excessive complexity while rewarding better data fit.
 
@@ -393,7 +393,7 @@ AIC(glm_depressed_3, glm_depressed_2)
 
 Model 2 (AIC = 5978.8) outperformed Model 3 (AIC = 6117.2), confirming the added explanatory value of `HealthGen`.
 
-### Confusion matrix
+## Confusion matrix
 
 We next assess the predictive performance of the models using confusion matrices.
 
@@ -452,11 +452,11 @@ show_eval(glm_depressed_3, "GLM Model 3 (without Age, BMI, HealthGen)")
 
 </details>
 
-#### Results of Confusion Matrices
+### Results of Confusion Matrices
 
 Model 2 showed higher accuracy (0.79), sensitivity (0.15), and precision (0.55) than Model 3, confirming better predictive performance. This indicates that HealthGen substantially improves the model’s ability to correctly identify depressed individuals, even though it may not be conceptually independent from the outcome.
 
-#### Optimal classification threshold
+### Optimal classification threshold
 
 Because the default threshold of 0.5 yielded very low sensitivity, adjusting the classification threshold can be reasonable. Lowering the threshold typically increases the model’s ability to identify depressed individuals, which may be more important depending on the research goal. Here the optimal threshold is determined based on the ROC curve for **model 3**.
 
@@ -470,15 +470,15 @@ coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"))
 
 With the default threshold of 0.5, the model detects only 15% of depressed individuals, meaning that most true cases are misclassified as non-depressed. After lowering the threshold to 0.22, sensitivity increases to 61%, making the model substantially better at identifying depressed individuals.
 
-### Note on Overdispersion
+## Note on Overdispersion
 
 Because `Depressed_bin` consists of individual Bernoulli observations (0/1), overdispersion is not an issue for this analysis.
 
-### Final remark on model selection
+## Final remark on model selection
 
 Model 2, which includes `HealthGen`, provides the best statistical fit and is preferable for prediction. Model 3, which excludes `HealthGen`, yields a less optimal fit but offers clearer interpretability of the other predictors. Therefore, **Model 2** is suited for predictive purposes, whereas **Model 3** is more appropriate for understanding how socioeconomic and lifestyle factors relate to depressive symptoms.
 
-### Research questions answered
+## Research questions answered
 
 1.  **Key predictors of depression**: Gender, poverty, marital status, general health, sleep duration, sleep trouble, and physical activity were significantly related to depressive symptoms, whereas age and BMI showed no meaningful effects.
 
