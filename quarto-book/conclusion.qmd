@@ -21,9 +21,9 @@ The GAM provided a more realistic representation: poverty and sleep hours showed
 
 ### Alcohol Models: Strong Inferential Signals and High Predictive Accuracy with Deep Learning
 
-The Poisson GLM revealed meaningful associations: men drink more, higher education predicts lower consumption, depression reduces drinking, and sleep, poverty, age, and BP were significant predictors. However, predictive accuracy was poor (MAE ≈ 60), reflecting the model’s inferential—not predictive—design.
+The Poisson GLM revealed meaningful associations: men drink more, higher education predicts lower consumption, depression reduces drinking, and sleep, poverty, age, and blood pressure were significant predictors. However, predictive accuracy was poor (MAE ≈ 60), reflecting the model’s inferential—not predictive—design.
 
-The deep neural network provided a substantial improvement (MAE ≈ 2.1), benefiting from a larger sample (n ≈ 4,435) and a multi-layer architecture capable of capturing complex interactions. While performance worsened for heavy drinkers (a small minority), the model generalized well and meaningfully supports risk prediction and early intervention.
+The deep neural network provided a substantial improvement (MAE ≈ 2.1), benefiting from a larger sample (n ≈ 4,435) and a multi-layer architecture capable of capturing complex interactions. While performance worsened for heavy drinkers (a small minority, though a argually very important one), the model generalized well and meaningfully supports risk prediction and early intervention for low-moderate drinkers.
 
 ### Final Summary
 
