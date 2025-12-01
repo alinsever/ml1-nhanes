@@ -11,10 +11,10 @@ execute:
   message: false
 ---
 
-# Executive Summary
+## Executive Summary
 
 :::{.callout-note collapse=true title="Show key findings"}
-## Key Findings
+### Key Findings
 
 **Model Development:**
 
@@ -37,9 +37,9 @@ execute:
 **Business Impact:** Model enables identification of individuals at risk for problematic consumption patterns, supporting targeted intervention strategies.
 :::
 
-# Background & Context
+## Background & Context
 
-## From Inference to Prediction
+### From Inference to Prediction
 
 The previous Poisson regression analysis identified significant predictors of alcohol consumption (gender, education, depression, age, poverty, sleep, blood pressure). While providing strong statistical inference, that model demonstrated poor predictive capability (MAE ≈ 60 drinks/day).
 
@@ -82,9 +82,9 @@ nhanes <- nhanes %>%
   )
 ```
 
-# Data Preprocessing
+## Data Preprocessing
 
-## One-Hot Encoding
+### One-Hot Encoding
 
 ```{r}
 model_nhanes <- nhanes %>% 
@@ -97,7 +97,7 @@ onehot_nhanes <- predict(dummies, newdata=model_nhanes)
 
 Categorical variables (Education, Depressed, Gender) converted to binary indicators.
 
-## Normalization
+### Normalization
 
 ```{r}
 cleaning = caret::preProcess(onehot_nhanes, method = c("range"), rangeBounds=c(0, 1))
@@ -106,7 +106,7 @@ prep_nhanes = predict(cleaning, newdata=onehot_nhanes)
 
 **Rationale:** Neural networks with stochastic gradient descent are scale-dependent. Min-max normalization [0,1] ensures equal feature importance and improves convergence, particularly with ReLU activations.
 
-## Train-Validation-Test Split
+### Train-Validation-Test Split
 
 ```{r}
 train_idx <- createDataPartition(y = prep_nhanes[,"AlcoholDay"], p = 0.75, list = FALSE)
@@ -124,7 +124,7 @@ Holdout validation techniques splits the training data into training and testing
 
 :::
 
-# Model Development
+## Model Development
 
 The first model tried was a simple multi-layer perceptron. 
 However, its performance being poor, a slightly different architecture had to be used.
@@ -309,7 +309,7 @@ test_result <- data.frame(
 
 ```
 
-# Results
+## Results
 
 The final model achieves ~2.14 drinks/day average error, which is substantially better than the previous GLM (MAE ≈ 60). The model's performance is consistent across validation and test sets, indicating strong generalization without overfitting.
 
@@ -346,9 +346,9 @@ ggplotly(test_plot)
 
 :::
 
-# Strategic Applications
+## Strategic Applications
 
-## Clinical Decision Support
+### Clinical Decision Support
 
 Our model enables identification of individuals likely to exhibit problematic consumption patterns based on demographic and health indicators, supporting:
 
@@ -356,7 +356,7 @@ Our model enables identification of individuals likely to exhibit problematic co
 - Resource allocation optimization
 - Personalized treatment planning
 
-## Compared to Statistical Model
+### Compared to Statistical Model
 
 | Aspect | Poisson GLM | Neural Network |
 |--------|-------------|----------------|
@@ -370,13 +370,13 @@ Our model enables identification of individuals likely to exhibit problematic co
 Those two model serves different purposes: GLM identifies *what* factors matter and *why*; Neural Network predicts *who* is at risk. They can be combined for better insights.
 :::
 
-# Conclusion
+## Conclusion
 
 This neural network successfully transitions alcohol consumption analysis from statistical inference to predictive capability. By focusing on significant predictors identified in GLM analysis, we achieved a 91% increase in usable data while reducing dimensionality. The deep architecture (4 hidden layers, 150 units) demonstrates strong predictive performance (MAE ~2.14 drinks/day) with good generalization—enabling practical deployment for risk identification and targeted intervention strategies.
 
 The complementary use of GLM (for understanding) and Neural Network (for prediction) provides a comprehensive analytical framework supporting evidence-based health policy and clinical decision-making.
 
-## Limitation
+### Limitation
 
 Although this model exhibits good performance on most cases, its performance drops for heavy drinkers. This is problematic as this at-risk population are the one that would benefits the most from prevention measures and interventions. Future model could try to model this minority better. However, it is likely that this task remains difficult without more quality data about the latter.
 

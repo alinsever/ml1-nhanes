@@ -1,0 +1,37 @@
+---
+title:  "Conclusion"
+format: html
+editor: source
+---
+
+## Conclusion
+
+This project applied six statistical and machine-learning models to NHANES data to examine three major health outcomes: **BMI**, **depressive symptoms**, and **daily alcohol consumption**. Together, the models demonstrate how classical regression and modern ML provide complementary insights: *regression clarifies which factors matter and why, while ML improves prediction and pattern detection in complex health behaviors*.
+
+### BMI Models: Limited Linear Structure, Moderate Non-Linear Predictive Value
+
+Linear regression showed that BMI is poorly explained by linear relationships. Race/ethnicity, physical activity, and smoking had the strongest associations, but even the full interaction model explained only ~9% of BMI variance. Variables such as age, income, sleep, and alcohol use had minimal adjusted effects.
+
+The SVM results confirmed this: the linear SVM failed to identify obese individuals (sensitivity = 0), whereas the radial SVM achieved moderate predictive accuracy (≈78%) with much stronger sensitivity (≈64%). This shows that BMI and obesity are non-linearly structured outcomes, and that traditional linear modeling is insufficient for accurate prediction.
+
+### Mental Health Models: Strong Predictors and Clear Non-Linear Relationships
+
+The GLM identified several robust predictors of depressive symptoms: poverty, marital status, gender, poor sleep, physical inactivity, and self-rated health. Age and BMI were not significant. Discrimination was moderate (AUC ≈ 0.71), and lowering the threshold improved sensitivity substantially.
+
+The GAM provided a more realistic representation: poverty and sleep hours showed clear non-linear effects, including a U-shaped sleep pattern. The GAM improved model fit (lower AIC; higher deviance explained), demonstrating that depressive symptoms are influenced by non-linear socioeconomic and behavioral dynamics that linear models cannot fully capture.
+
+### Alcohol Models: Strong Inferential Signals and High Predictive Accuracy with Deep Learning
+
+The Poisson GLM revealed meaningful associations: men drink more, higher education predicts lower consumption, depression reduces drinking, and sleep, poverty, age, and BP were significant predictors. However, predictive accuracy was poor (MAE ≈ 60), reflecting the model’s inferential—not predictive—design.
+
+The deep neural network provided a substantial improvement (MAE ≈ 2.1), benefiting from a larger sample (n ≈ 4,435) and a multi-layer architecture capable of capturing complex interactions. While performance worsened for heavy drinkers (a small minority), the model generalized well and meaningfully supports risk prediction and early intervention.
+
+### Final Summary
+
+The combination of regression and machine learning reveals that:
+
+- BMI is weakly predictable with linear methods but moderately predictable with non-linear ML.
+- Depression is primarily shaped by socioeconomic and behavioral factors, with meaningful non-linear effects.
+- Alcohol consumption can be predicted accurately with deep learning, while GLM provides valuable interpretability.
+
+Together, the six models provide a balanced analytical framework: statistical inference identifies the key drivers of health outcomes, while machine learning improves our ability to predict who is at risk. This integrated approach strengthens both our understanding of the data and its practical applications for public health and clinical decision-making.
