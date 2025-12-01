@@ -189,7 +189,7 @@ svm_linear <- train(obese ~ ., data = training, method = "svmLinear", trControl 
 
 ```
 
-::: {.callout-note collapse = "true" title = "svm-linear summary"}
+::: {.callout-note collapse = true title = "svm-linear summary"}
 ```{r}
 #| code-fold: false
 svm_linear
@@ -208,7 +208,7 @@ test_pred_linear <- predict(svm_linear, newdata = testing)
 
 ```
 
-::: {.callout-note collapse = "true" title = "confusion matrix result"}
+::: {.callout-note collapse = true title = "confusion matrix result"}
 ```{r}
 #| code-fold: false
 confusionMatrix(test_pred_linear, testing$obese)
@@ -234,7 +234,7 @@ svm_radial <- train(obese ~ ., data = training, method = "svmRadial", trControl 
 
 ```
 
-::: {.callout-note collapse = "true" title = "svm-radial summary"}
+::: {.callout-note collapse = true title = "svm-radial summary"}
 ```{r}
 svm_radial
 ```
@@ -251,7 +251,7 @@ test_pred_radial <- predict(svm_radial, newdata = testing)
 
 ```
 
-::: {.callout-note collapse = "true" title = "confusion matrix svm-radial"}
+::: {.callout-note collapse = true title = "confusion matrix svm-radial"}
 ```{r}
 
 confusionMatrix(test_pred_radial, testing$obese)

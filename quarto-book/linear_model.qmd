@@ -96,7 +96,7 @@ Where:
 -   Variables: Age; Gender; Race1; Education; HHIncomeMid (we used log transform); PhysActive; SleepHrsNight; AlcoholDay; SmokeNow; BPSysAve. Factor coding: treatment contrasts (reference vs others).
 -   Missing data strategy (baseline): Complete-case analysis on these variables to keep the workflow transparent.
 
-::: {.callout-note collapse = "true" title = "Handling Missing Values"}
+::: {.callout-note collapse = true title = "Handling Missing Values"}
 
 ```{r}
 #| label: load data _ deal with NA
@@ -241,7 +241,7 @@ bmi_categories %>%
 
 
 
-::: {.callout-note collapse = "true" title = "BMI Distribution plot and outlier detection"}
+::: {.callout-note collapse = true title = "BMI Distribution plot and outlier detection"}
 
 
 
@@ -357,7 +357,7 @@ Although the BMI distribution shows high-value observations, these values fall w
 Among all variables examined, physical activity, race/ethnicity, and education level showed the strongest associations with BMI. Physically active individuals had noticeably lower BMI on average, and several race and education groups displayed meaningful mean differences. In contrast, most continuous predictors such as age, income, sleep hours, blood pressure, and alcohol use—showed very weak correlations and offered limited linear explanatory power.
 Please see below in the collapsed section for the full EDA.
 
-::: {.callout-note collapse = "true" title = "Pairwise relationships with BMI"}
+::: {.callout-note collapse = true title = "Pairwise relationships with BMI"}
 
 ### Pairwise relationships with BMI (continuous predictors)
 
@@ -614,7 +614,7 @@ p_alc2
 ::::::
 :::
 
-::: {.callout-note collapse = "true" title = "Appendinx: BMI vs Alcohol Day"}
+::: {.callout-note collapse = true title = "Appendinx: BMI vs Alcohol Day"}
 
 Below are the BMI–AlcoholDay correlations and visualizations: (i) the plot over the full 0–80 range, and (ii) the log(1 + AlcoholDay)
 
@@ -774,7 +774,7 @@ print(p_active)
 
 ::::::
 
-::: {.callout-note collapse = "true" title = "Appendix: Physical Activity Stats and T-test"}
+::: {.callout-note collapse = true title = "Appendix: Physical Activity Stats and T-test"}
 
 ```{r}
 #| label: active_stats
@@ -868,7 +868,7 @@ print(p_education)
 :::
 
 
-::: {.callout-note collapse = "true" title = "Appendix: Education Stats and Anova and "}
+::: {.callout-note collapse = true title = "Appendix: Education Stats and Anova and "}
 
 ```{r}
 #| label: education_stats
@@ -956,7 +956,7 @@ print(p_race)
 ::::::
 
 
-::: {.callout-note collapse = "true" title = "Appendinx: Race Stats and Anova"}
+::: {.callout-note collapse = true title = "Appendinx: Race Stats and Anova"}
 
 ```{r}
 #| label: race3
@@ -1009,7 +1009,7 @@ p_smoke
 :::
 ::::::
 
-::: {.callout-note collapse = "true" title = "Appendix: BMI~Smoke t-test"}
+::: {.callout-note collapse = true title = "Appendix: BMI~Smoke t-test"}
 ```{r}
 
 t_test_Smoke <- t.test(BMI ~ SmokeNow, data = nhanes_lm)
@@ -1029,7 +1029,7 @@ t_test_Smoke
 
 To reach the final interaction model, we estimated a sequence of nested linear models. The simple BMI ~ Age regression showed no meaningful association, and adding basic demographics improved the fit only slightly, with race contributing the most. Socioeconomic factors provided minimal additional explanatory power. Lifestyle and clinical variables strengthened the model somewhat, with physical activity, smoking status, systolic blood pressure, and race emerging as the most consistent predictors of BMI. All earlier models and their outputs are collapsed below, while the final interaction model remains visible for interpretation.
 
-::: {.callout-note collapse = "true" title = "Linear Modeling Progression"}
+::: {.callout-note collapse = true title = "Linear Modeling Progression"}
 
 ### BMI ~ Age
 
@@ -1202,7 +1202,7 @@ M4 <- update(M3, . ~ . + PhysActive:Gender + PhysActive:Education + Gender:Smoke
 
 ```
 
-::: {.callout-note collapse = "true" title = "Model Summary-  result"}
+::: {.callout-note collapse = true title = "Model Summary-  result"}
 
 ```{r}
 summary(M4)
@@ -1232,7 +1232,7 @@ M4_drop1 <- drop1(M4, test = "F")
 ```
 
 
-::: {.callout-note collapse = "true" title = "F-test result"}
+::: {.callout-note collapse = true title = "F-test result"}
 
 ```{r}
 M4_drop1
