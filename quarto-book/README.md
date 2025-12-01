@@ -34,7 +34,7 @@ neural_network.qmd         → Alcohol consumption: Neural Network
 index.html                 → Rendered introduction page
 data/                      → Data files (NHANES subset, results, processed data)
 _quarto.yml                → Quarto book configuration
-README.qmd                 → Project documentation (this file)
+README.md                 → Project documentation (this file)
 ```
 
 The compiled book is generated using:
