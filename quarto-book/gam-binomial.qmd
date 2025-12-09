@@ -38,7 +38,8 @@ Building on the GLM results from Chapter 3, this chapter examines whether key pr
 #| fig-height: 3
 #| fig-width: 6
 
-Depressed_data_imp <- readRDS(here("data", "depressed_imp.rds"))
+# Depressed_data_imp <- readRDS(here("data", "depressed_imp.rds"))
+Depressed_data_imp <- readRDS(quarto::project_path("data", "depressed_imp.rds"))
 
 ggplot(Depressed_data_imp, aes(x = Poverty, y = as.numeric(Depressed_bin) - 1)) +
   geom_jitter(height = 0.05, alpha = 0.3, color = "gray60") +

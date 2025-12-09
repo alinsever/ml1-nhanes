@@ -61,7 +61,9 @@ library(plotly)
 library(torch)
 library(luz)
 
-nhanes <- readRDS(here("data", "nhanes.rds"))
+# nhanes <- readRDS(here("data", "nhanes.rds"))
+nhanes <- readRDS(quarto::project_path("data", "nhanes.rds"))
+
 
 nhanes <- nhanes %>%
   mutate(
@@ -152,7 +154,9 @@ y_pred_hu150 <- predict(mlp_hu150, newdata = testing[test_sample_idx,])
 ```{r}
 #| fig-width: 6
 #| fig-height: 3
-result = read.csv(here("data", "mlp_grid_result.csv"))
+# result = read.csv(here("data", "mlp_grid_result.csv"))
+result <- read.csv(quarto::project_path("data", "mlp_grid_result.csv"))
+
 p <- ggplot(data = result, mapping = aes(x = size)) +
   geom_line(mapping = aes(y = RMSE, color = "RMSE"), linewidth = 1) +
   geom_line(mapping = aes(y = MAE, color="MAE"), linewidth = 1) +
