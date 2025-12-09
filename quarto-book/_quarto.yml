@@ -20,7 +20,9 @@ book:
       chapters:
         - glm_poisson.qmd
         - neural_network.qmd
-
+    - part: Conclusion
+      chapters: 
+        - conclusion.qmd
 
 bibliography: references.bib
 
