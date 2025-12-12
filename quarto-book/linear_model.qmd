@@ -69,7 +69,7 @@ options(contrasts = c("contr.treatment","contr.poly")) # default anyway
 
 Body Mass Index (BMI) is a continuous variable calculated as weight (kg) divided by height squared ($m^{2}$). BMI is a proxy for body fat and is strongly related to chronic diseases such as diabetes, cardiovascular disease and hypertension.
 
-In this analysis, we use NHANES adult participants (Age \>= 18) to examine how demographics, socioeconomic status and lifestyle behaviors are associated withBMI
+In this analysis, we use NHANES adult participants (Age \>= 18) to examine how demographics, socioeconomic status and lifestyle behaviors are associated with BMI
 
 ## Model Specifications
 
