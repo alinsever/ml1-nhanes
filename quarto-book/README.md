@@ -31,6 +31,7 @@ glm-binomial.qmd           → Mental Health: GLM (Binomial)
 gam-binomial.qmd           → Mental Health: GAM
 glm_poisson.qmd            → Alcohol consumption: GLM (Poisson)
 neural_network.qmd         → Alcohol consumption: Neural Network
+conclusion.qmd             → Joint Conclusion
 index.html                 → Rendered introduction page
 data/                      → Data files (NHANES subset, results, processed data)
 _quarto.yml                → Quarto book configuration
