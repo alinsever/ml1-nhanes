@@ -32,7 +32,7 @@ gam-binomial.qmd           → Mental Health: GAM
 glm_poisson.qmd            → Alcohol consumption: GLM (Poisson)
 neural_network.qmd         → Alcohol consumption: Neural Network
 conclusion.qmd             → Joint Conclusion
-index.html                 → Rendered introduction page
+_book/                     → Rendered report containing the HTML files
 data/                      → Data files (NHANES subset, results, processed data)
 _quarto.yml                → Quarto book configuration
 README.md                 → Project documentation (this file)
@@ -43,6 +43,23 @@ The compiled book is generated using:
 ```
 quarto render
 ```
+
+## How to view
+
+The easiest way to view the report is to double-click on the `_book/index.html` file. 
+Alternatively, you can achieve the same result by using the following terminal command: 
+
+```bash
+open _book/index.html
+```
+
+or, the Quarto CLI preview command, provided that you have this tool installed on your machine.
+
+```bash
+quarto preview quarto-book
+```
+
+You can also render the book again. However, keep in mind that this will re-train the Support Vector Machine as well as the Neural Network.
 
 ---
 
