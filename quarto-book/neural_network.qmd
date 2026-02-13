@@ -128,7 +128,7 @@ Holdout validation techniques splits the training data into training and testing
 
 ## Model Development
 
-The first model tried was a simple multi-layer perceptron. 
+The **first model** tried was a simple multi-layer perceptron. 
 However, its performance being poor, a slightly different architecture had to be used.
 
 ```{r}
@@ -189,7 +189,7 @@ ggplot(data = test_result, mapping = aes(x = seq(nrow(test_result)))) +
 :::
 :::
 
-The second approach involved a deeper neural network, with four hidden layer instead of one. This enable the network to learn mode complexe patterns, that a shallow network cannot grasp.
+The **second approach** involved a deeper neural network, with four hidden layer instead of one. This enable the network to learn more complexe patterns, that a shallow network cannot grasp.
 
 ::: {.callout-tip collapse="true" title="More about the network's features"}
 
