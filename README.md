@@ -55,7 +55,7 @@ quarto render
 - Support Vector Machine (SVM)
 
 Focus: Predicting BMI and comparing linear vs. non-linear modelling approaches.
-
+Full methodology, validation details, and performance metrics are documented in the rendered Quarto report.
 ---
 
 ### Part 2 — Mental Health  
